@@ -1,0 +1,5 @@
+apiVersion: v2
+name: testenv-qa
+description: QA test environment — currently just a namespace with guard rails
+type: application
+version: 0.1.0

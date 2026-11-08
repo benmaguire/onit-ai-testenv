@@ -1,0 +1,31 @@
+# Set by the ApplicationSet from env.yaml; defaults let `helm template` work locally.
+state: up
+global:
+  envName: qa
+
+namespace: qa
+
+# Guard rails so QA workloads cannot starve a single-node k3s cluster.
+# Set enabled: false to remove a guard rail.
+resourceQuota:
+  enabled: true
+  hard:
+    requests.cpu: "4"
+    requests.memory: 8Gi
+    limits.cpu: "8"
+    limits.memory: 16Gi
+    pods: "50"
+    persistentvolumeclaims: "10"
+
+limitRange:
+  enabled: true
+  defaultRequest:
+    cpu: 50m
+    memory: 64Mi
+  default:
+    cpu: 500m
+    memory: 512Mi
+
+# Future QA workloads go in templates/. Use the "testenv.replicas" helper for
+# replica counts so `state: down` scales them to 0, e.g.
+#   replicas: {{ include "testenv.replicas" (list . 2) }}

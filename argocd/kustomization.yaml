@@ -1,0 +1,11 @@
+# Bootstrap for the test-environment repo.
+#   kubectl apply -k argocd/
+# Installs the AppProject, the Helm repo credentials (public, no secrets) and the
+# ApplicationSet that turns every environments/*/env.yaml into an Argo CD Application.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: argocd
+resources:
+  - project.yaml
+  - repositories.yaml
+  - applicationset.yaml

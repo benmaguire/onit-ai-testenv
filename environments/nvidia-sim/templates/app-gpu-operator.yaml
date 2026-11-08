@@ -1,0 +1,5 @@
+{{- $c := .Values.components.gpuOperator -}}
+{{- if $c.enabled }}
+{{- $source := dict "repoURL" $c.repoURL "chart" $c.chart "targetRevision" $c.version "helm" (dict "releaseName" "gpu-operator" "valuesObject" $c.values) }}
+{{ include "nvsim.app" (dict "root" $ "key" "gpu-operator" "c" $c "source" $source) }}
+{{- end }}

@@ -1,0 +1,41 @@
+# up | down — down forces every component to 0 replicas. Set by the parent chart.
+state: up
+
+name: mocker-agg
+
+# No dedicated mocker image: dynamo-planner ships dynamo.mocker.
+image: nvcr.io/nvidia/ai-dynamo/dynamo-planner:1.6.1
+imagePullPolicy: IfNotPresent
+imagePullSecrets: []
+
+# Model the mocker pretends to serve. Only its config/tokenizer are fetched
+# from Hugging Face (no weights). Qwen3-0.6B is ungated, so no token needed.
+model: Qwen/Qwen3-0.6B
+# Name of an existing Secret with HF_TOKEN, for gated models. Empty = none.
+hfTokenSecret: ""
+
+frontend:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      memory: 2Gi
+
+decode:
+  replicas: 1
+  # >1.0 makes simulated inference faster than real time.
+  speedupRatio: "1.0"
+  # Extra dynamo.mocker flags, see the Mocker CLI reference.
+  extraArgs: []
+  # Request a (mock) GPU so the worker lands on the Mokka node through the real
+  # device plugin. Set to 0 to run the mocker without GPU scheduling, like the
+  # upstream Dynamo example.
+  gpus: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      memory: 2Gi

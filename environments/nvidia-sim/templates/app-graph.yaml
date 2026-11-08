@@ -1,0 +1,7 @@
+{{- $c := .Values.components.graph -}}
+{{- if $c.enabled }}
+{{- $vals := merge (dict "state" .Values.state) (deepCopy $c.values) }}
+{{- $source := dict "repoURL" .Values.global.repoURL "path" $c.path "targetRevision" .Values.global.targetRevision "helm" (dict "releaseName" "mocker" "valuesObject" $vals) }}
+{{- /* DynamoGraphDeployment CRD only exists once the Dynamo operator has started. */}}
+{{ include "nvsim.app" (dict "root" $ "key" "graph" "c" $c "source" $source "syncOptions" (list "SkipDryRunOnMissingResource=true")) }}
+{{- end }}

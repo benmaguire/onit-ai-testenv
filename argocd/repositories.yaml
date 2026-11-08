@@ -1,0 +1,38 @@
+# Helm repositories used by environments. All are public; these Secrets only
+# register them with Argo CD (OCI needs enableOCI). No credentials are stored.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: repo-mokka-oci
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  name: mokka
+  type: helm
+  url: ghcr.io/nvidia/k8s-test-infra/chart
+  enableOCI: "true"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: repo-ngc-nvidia
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  name: ngc-nvidia
+  type: helm
+  url: https://helm.ngc.nvidia.com/nvidia
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: repo-ngc-ai-dynamo
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  name: ngc-ai-dynamo
+  type: helm
+  url: https://helm.ngc.nvidia.com/nvidia/ai-dynamo
