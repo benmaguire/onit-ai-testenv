@@ -1,0 +1,46 @@
+state: up
+global:
+  envName: nvidia-dynamo-disagg
+
+namespace: nvidia-dynamo-disagg
+name: mocker-disagg
+image: nvcr.io/nvidia/ai-dynamo/dynamo-planner:1.6.1
+model: Qwen/Qwen3-0.6B
+
+frontend:
+  replicas: 1
+  # kv: route by KV-cache overlap (prefix reuse) instead of round-robin.
+  routerMode: kv
+  # Retries a request on another worker if its worker dies mid-stream.
+  migrationLimit: 3
+  resources:
+    requests: {cpu: 250m, memory: 512Mi}
+    limits: {memory: 2Gi}
+
+prefill:
+  replicas: 1
+  gpus: 1
+  extraArgs: []
+  resources:
+    requests: {cpu: 250m, memory: 512Mi}
+    limits: {memory: 2Gi}
+
+decode:
+  replicas: 2
+  gpus: 1
+  extraArgs: []
+  resources:
+    requests: {cpu: 250m, memory: 512Mi}
+    limits: {memory: 2Gi}
+
+speedupRatio: "1.0"
+
+# Continuous traffic so dashboards and simulation baselines have data.
+loadgen:
+  enabled: true
+  replicas: 1
+  image: nicolaka/netshoot:v0.16
+  concurrency: 4
+  # Shared prefixes exercise the KV router; varied suffixes avoid full hits.
+  maxTokens: 64
+  sleepSeconds: "0.2"

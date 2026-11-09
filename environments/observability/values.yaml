@@ -1,0 +1,69 @@
+state: up
+global:
+  envName: observability
+  project: testenvs
+  repoURL: https://github.com/benmaguire/onit-ai-testenv.git
+  targetRevision: main
+  argocdNamespace: argocd
+  destinationServer: https://kubernetes.default.svc
+
+components:
+  # --- kube-prometheus-stack: Prometheus operator, Prometheus, Grafana,
+  # kube-state-metrics, node-exporter. The simulation controller queries this
+  # Prometheus (http://kube-prometheus-stack-prometheus.observability.svc:9090).
+  prometheusStack:
+    enabled: true
+    syncWave: 0
+    namespace: observability
+    repoURL: ghcr.io/prometheus-community/charts
+    chart: kube-prometheus-stack
+    version: 93.1.0
+    values:
+      fullnameOverride: kube-prometheus-stack
+      # k3s runs these in the k3s process; there is nothing to scrape.
+      kubeControllerManager: {enabled: false}
+      kubeScheduler: {enabled: false}
+      kubeProxy: {enabled: false}
+      kubeEtcd: {enabled: false}
+      alertmanager:
+        enabled: false
+      prometheusOperator:
+        # Helm-hook certgen jobs + runtime-patched webhooks fight Argo CD.
+        admissionWebhooks: {enabled: false}
+        tls: {enabled: false}
+      prometheus:
+        prometheusSpec:
+          retention: 7d
+          scrapeInterval: 15s
+          # Pick up every ServiceMonitor/PodMonitor/Probe/rule, not only the chart's.
+          serviceMonitorSelectorNilUsesHelmValues: false
+          podMonitorSelectorNilUsesHelmValues: false
+          probeSelectorNilUsesHelmValues: false
+          ruleSelectorNilUsesHelmValues: false
+          resources:
+            requests: {cpu: 200m, memory: 512Mi}
+            limits: {memory: 2Gi}
+      grafana:
+        # Test environment default; change it (or use admin.existingSecret).
+        adminPassword: testenv
+        testFramework: {enabled: false}
+        sidecar:
+          dashboards:
+            enabled: true
+            label: grafana_dashboard
+            searchNamespace: ALL
+        service:
+          type: NodePort
+          nodePort: 30300
+      kube-state-metrics:
+        metricLabelsAllowlist:
+          - nodes=[type,run.ai/simulated-gpu-node-pool]
+          - pods=[app,nvidia.com/dynamo-component-type,nvidia.com/dynamo-graph-deployment-name]
+
+  # --- Scrape config for every environment + dashboards (chart in ./monitors)
+  monitors:
+    enabled: true
+    syncWave: 1
+    namespace: observability
+    path: environments/observability/monitors
+    values: {}

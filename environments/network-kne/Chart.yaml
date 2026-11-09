@@ -1,0 +1,5 @@
+apiVersion: v2
+name: testenv-network-kne
+description: App-of-apps for the KNE network environment (meshnet, KNE topology runner, gnmic telemetry)
+type: application
+version: 0.1.0

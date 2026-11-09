@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# Reconciles the KNE topology in /topology with the cluster, from inside a pod.
+#   STATE=up    create the topology; recreate it when HASH changed
+#   STATE=down  delete it (KNE deletes the topology namespace)
+set -euo pipefail
+: "${TOPO:?}" "${STATE:?}"
+HASH=${HASH:-}
+TIMEOUT=${TIMEOUT:-20m}
+KC=/tmp/kubeconfig
+SA=/var/run/secrets/kubernetes.io/serviceaccount
+
+# kne reads a kubeconfig file; build one from the pod's service account.
+cat > "$KC" <<KUBE
+apiVersion: v1
+kind: Config
+clusters: [{name: in-cluster, cluster: {server: "https://kubernetes.default.svc", certificate-authority: "$SA/ca.crt"}}]
+users: [{name: sa, user: {tokenFile: "$SA/token"}}]
+contexts: [{name: in-cluster, context: {cluster: in-cluster, user: sa}}]
+current-context: in-cluster
+KUBE
+export KUBECONFIG=$KC
+cd /topology
+
+delete() {
+  if kubectl get ns "$TOPO" >/dev/null 2>&1; then
+    echo "deleting topology $TOPO"
+    kne delete topology.pb.txt --kubecfg "$KC" || kubectl delete ns "$TOPO" --wait=true --timeout=10m
+  fi
+}
+
+if [ "$STATE" = down ]; then
+  delete
+  echo "topology $TOPO removed"
+  exit 0
+fi
+
+current=$(kubectl get ns "$TOPO" -o jsonpath='{.metadata.annotations.testenv\.onit\.ai/topology-hash}' 2>/dev/null || true)
+pods=$(kubectl -n "$TOPO" get pods -l topo="$TOPO" --no-headers 2>/dev/null | wc -l | tr -d ' ')
+if [ -n "$current" ] && [ "$current" = "$HASH" ] && [ "$pods" -gt 0 ]; then
+  echo "topology $TOPO up to date ($pods pods)"
+  kubectl -n "$TOPO" get pods -o wide
+  exit 0
+fi
+if [ -n "$current" ] || [ "$pods" -gt 0 ]; then
+  echo "topology changed ($current -> $HASH): recreating"
+  delete
+  kubectl wait --for=delete ns/"$TOPO" --timeout=10m 2>/dev/null || true
+fi
+
+echo "creating topology $TOPO"
+kne create topology.pb.txt --kubecfg "$KC" --timeout "$TIMEOUT"
+kubectl annotate ns "$TOPO" --overwrite testenv.onit.ai/topology-hash="$HASH" testenv.onit.ai/name=network-kne >/dev/null
+kubectl label ns "$TOPO" --overwrite testenv.onit.ai/name=network-kne >/dev/null
+kubectl -n "$TOPO" get pods -o wide

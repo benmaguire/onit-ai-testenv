@@ -74,3 +74,16 @@ stringData:
   type: helm
   url: ghcr.io/kai-scheduler/kai-scheduler
   enableOCI: "true"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: repo-prometheus-community-oci
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  name: prometheus-community-oci
+  type: helm
+  url: ghcr.io/prometheus-community/charts
+  enableOCI: "true"

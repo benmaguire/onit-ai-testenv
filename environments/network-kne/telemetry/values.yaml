@@ -1,0 +1,9 @@
+state: up
+envName: network-kne
+namespace: network-kne
+topologyName: xrd-lab
+routers: [r1, r2]
+routerUsername: cisco
+routerPassword: C1sco12345
+image: ghcr.io/openconfig/gnmic:0.49.1
+sampleInterval: 10s

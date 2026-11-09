@@ -1,0 +1,113 @@
+{{- $files := include "kne.files" . }}
+{{- $hash := $files | sha256sum | trunc 16 }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: testenvs
+    testenv.onit.ai/name: {{ .Values.envName }}
+    testenv.onit.ai/state: {{ .Values.state }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kne-topology
+  namespace: {{ .Values.namespace }}
+data:
+  {{- $files | nindent 2 }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kne-runner
+  namespace: {{ .Values.namespace }}
+---
+# KNE creates namespaces, pods, services, secrets and meshnet Topology objects.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: network-kne-runner
+rules:
+  - apiGroups: [""]
+    resources: [namespaces, pods, pods/exec, pods/log, pods/status, services, endpoints, configmaps, secrets, serviceaccounts, events, nodes]
+    verbs: ["*"]
+  - apiGroups: [networkop.co.uk]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: [apps]
+    resources: [deployments, daemonsets, statefulsets]
+    verbs: ["*"]
+  - apiGroups: [discovery.k8s.io]
+    resources: [endpointslices]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: network-kne-runner
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: network-kne-runner}
+subjects:
+  - {kind: ServiceAccount, name: kne-runner, namespace: {{ .Values.namespace }}}
+---
+# Runs on every sync: creates the topology (state up), recreates it when the
+# topology or router configs changed, or deletes it (state down).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kne-reconcile
+  namespace: {{ .Values.namespace }}
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 6
+  template:
+    spec:
+      serviceAccountName: kne-runner
+      restartPolicy: OnFailure
+      containers:
+        - name: kne
+          image: {{ .Values.runner.image }}
+          env:
+            - {name: STATE, value: {{ .Values.state | quote }}}
+            - {name: TOPO, value: {{ .Values.topologyName | quote }}}
+            - {name: HASH, value: {{ $hash | quote }}}
+            - {name: TIMEOUT, value: {{ .Values.runner.timeout | quote }}}
+          command: [/usr/local/bin/kne-reconcile]
+          volumeMounts:
+            - {name: topology, mountPath: /topology}
+      volumes:
+        - name: topology
+          configMap: {name: kne-topology}
+---
+# Removing the environment deletes the topology namespace KNE created
+# (Argo CD does not own it). Needs Argo CD 2.10+ (PostDelete hooks).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kne-cleanup
+  namespace: {{ .Values.namespace }}
+  annotations:
+    argocd.argoproj.io/hook: PostDelete
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      serviceAccountName: kne-runner
+      restartPolicy: OnFailure
+      containers:
+        - name: kne
+          image: {{ .Values.runner.image }}
+          env:
+            - {name: STATE, value: down}
+            - {name: TOPO, value: {{ .Values.topologyName | quote }}}
+          command: [/usr/local/bin/kne-reconcile]
+          volumeMounts:
+            - {name: topology, mountPath: /topology}
+      volumes:
+        - name: topology
+          configMap: {name: kne-topology}

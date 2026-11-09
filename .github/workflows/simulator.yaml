@@ -4,9 +4,9 @@ on:
   push:
     branches: [main]
     tags: ["simulator-v*"]
-    paths: ["simulations/nvidia-sim/**", ".github/workflows/simulator.yaml"]
+    paths: ["simulations/controller/**", ".github/workflows/simulator.yaml"]
   pull_request:
-    paths: ["simulations/nvidia-sim/**", ".github/workflows/simulator.yaml"]
+    paths: ["simulations/controller/**", ".github/workflows/simulator.yaml"]
 
 permissions:
   contents: read
@@ -14,7 +14,7 @@ permissions:
 
 defaults:
   run:
-    working-directory: simulations/nvidia-sim
+    working-directory: simulations/controller
 
 jobs:
   test:
@@ -23,8 +23,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version-file: simulations/nvidia-sim/go.mod
-          cache-dependency-path: simulations/nvidia-sim/go.sum
+          go-version-file: simulations/controller/go.mod
+          cache-dependency-path: simulations/controller/go.sum
       - run: make verify    # regenerates code, CRDs, RBAC, CATALOG.md; fails if stale; runs tests
 
   image:
@@ -50,7 +50,7 @@ jobs:
             type=match,pattern=simulator-v(.*),group=1
       - uses: docker/build-push-action@v6
         with:
-          context: simulations/nvidia-sim
+          context: simulations/controller
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}

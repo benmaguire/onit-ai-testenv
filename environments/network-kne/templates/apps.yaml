@@ -1,0 +1,13 @@
+{{- with .Values.components.meshnet }}{{ if .enabled }}
+{{ include "kne.app" (dict "root" $ "key" "meshnet" "c" . "source" (dict "repoURL" $.Values.global.repoURL "path" .path "targetRevision" $.Values.global.targetRevision)) }}
+{{- end }}{{ end }}
+---
+{{- with .Values.components.topology }}{{ if .enabled }}
+{{- $vals := merge (dict "state" $.Values.state "envName" $.Values.global.envName) (deepCopy .values) }}
+{{ include "kne.app" (dict "root" $ "key" "topology" "c" . "source" (dict "repoURL" $.Values.global.repoURL "path" .path "targetRevision" $.Values.global.targetRevision "helm" (dict "releaseName" "topology" "valuesObject" $vals))) }}
+{{- end }}{{ end }}
+---
+{{- with .Values.components.telemetry }}{{ if .enabled }}
+{{- $vals := merge (dict "state" $.Values.state "envName" $.Values.global.envName) (deepCopy .values) }}
+{{ include "kne.app" (dict "root" $ "key" "telemetry" "c" . "source" (dict "repoURL" $.Values.global.repoURL "path" .path "targetRevision" $.Values.global.targetRevision "helm" (dict "releaseName" "telemetry" "valuesObject" $vals))) }}
+{{- end }}{{ end }}

@@ -1,0 +1,5 @@
+apiVersion: v2
+name: network-kne-topology
+description: KNE topology (2 Cisco XRd routers + 2 Linux hosts) created and removed by an in-cluster kne runner
+type: application
+version: 0.1.0

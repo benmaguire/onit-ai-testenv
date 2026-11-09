@@ -1,0 +1,6 @@
+{{- $c := .Values.components.monitors -}}
+{{- if $c.enabled }}
+{{- $src := dict "repoURL" .Values.global.repoURL "path" $c.path "targetRevision" .Values.global.targetRevision "helm" (dict "releaseName" "monitors" "valuesObject" (deepCopy $c.values)) }}
+{{- /* ServiceMonitor/PodMonitor CRDs come from the stack. */}}
+{{ include "obs.app" (dict "root" $ "key" "monitors" "c" $c "source" $src "syncOptions" (list "SkipDryRunOnMissingResource=true")) }}
+{{- end }}

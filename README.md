@@ -9,15 +9,21 @@ documentation, specs, and a small `env.yaml` of lifecycle switches.
 |---|---|---|
 | `qa` | A guarded namespace for QA workloads (placeholder for now) | [environments/qa](environments/qa/README.md) |
 | `nvidia-sim` | Simulated NVIDIA GPU node ([Mokka](https://github.com/NVIDIA/k8s-test-infra)) + GPU Operator + [NVIDIA Dynamo](https://docs.nvidia.com/dynamo/) serving a mocker inference graph — no real GPUs | [environments/nvidia-sim](environments/nvidia-sim/README.md) |
+| `nvidia-dynamo-disagg` | Dynamo **disaggregated** serving (prefill + 2 decode workers, KV-aware routing, request migration) on mock GPUs, under load. Needs nvidia-sim. Starts disabled | [environments/nvidia-dynamo-disagg](environments/nvidia-dynamo-disagg/README.md) |
+| `nvidia-triton-cpu` | **NVIDIA Triton Inference Server** on CPU: LLM-shaped and example Python models, dynamic batching, HPA, PDB, load. Starts disabled | [environments/nvidia-triton-cpu](environments/nvidia-triton-cpu/README.md) |
+| `network-kne` | **KNE network emulation**: 2 Cisco XRd routers (OSPF + iBGP) and 2 hosts, gNMI telemetry. Needs the XRd image. Starts disabled | [environments/network-kne](environments/network-kne/README.md) |
+| `observability` | **Prometheus + Grafana** for all environments, and the metrics backend for simulation baselines. Starts disabled | [environments/observability](environments/observability/README.md) |
 | `runai-sim` | Run:ai-style GPU scheduling on non-GPU hardware: KAI Scheduler (open-source Run:ai scheduler) + Run:ai fake-gpu-operator on KWOK virtual GPU nodes (40 simulated GPUs). Starts disabled | [environments/runai-sim](environments/runai-sim/README.md) |
 
 Target cluster: a **single-node k3s** cluster with Argo CD installed.
 
 Failure/recovery **simulations** to run during tests live in
-[`simulations/`](simulations/README.md), one directory per environment. That
-includes a controller (`Simulation` CRD + HTTP API, with a central hub for
-remote clusters) that injects GPU, Dynamo and Kubernetes faults into
-`nvidia-sim`.
+[`simulations/`](simulations/README.md), one directory per environment. A
+controller ([simulations/controller](simulations/controller/README.md):
+`Simulation` CRD, HTTP API, `simctl`, central hub for remote clusters) injects
+42 kinds of fault: network latency, jitter, loss and outages, resource stress,
+GPU, Dynamo, Run:ai and router link faults. It measures every one against a
+baseline ([monitoring process](simulations/controller/docs/observability.md)).
 
 ## Layout
 
@@ -37,7 +43,8 @@ environments/
 simulations/
   README.md                     simulations per environment, how they run
   <env>/README.md               what can be simulated in that env
-  nvidia-sim/                   Go controller (agent/hub), simctl, CRDs, catalog
+  controller/                   Go controller (agent/hub), simctl, CRDs, catalog, observability
+  faults/                       generic network/service/resource faults
 scripts/
   envctl.sh                     list / up / down / remove / status / sync / purge
 docs/

@@ -1,0 +1,182 @@
+{{- define "r" -}}{{- if eq .root.Values.state "down" }}0{{ else }}{{ .n }}{{ end -}}{{- end }}
+{{- $t := .Values.triton }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: testenvs
+    testenv.onit.ai/name: {{ .Values.global.envName }}
+    testenv.onit.ai/state: {{ .Values.state }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: triton
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: triton-inference-server
+    testenv.onit.ai/name: {{ .Values.global.envName }}
+spec:
+  {{- if not (and $t.autoscaling.enabled (ne .Values.state "down")) }}
+  replicas: {{ include "r" (dict "root" $ "n" $t.replicas) }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: triton-inference-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: triton-inference-server
+      annotations:
+        checksum/models: {{ include (print $.Template.BasePath "/models.yaml") . | sha256sum }}
+    spec:
+      initContainers:
+        # Lay the ConfigMap out as a Triton model repository.
+        - name: model-repo
+          image: {{ .Values.loadgen.image }}
+          command: [bash, -c]
+          args:
+            - |
+              set -e
+              for m in add_sub simulated_llm; do
+                mkdir -p /models/$m/1
+                cp /cm/$m.config.pbtxt /models/$m/config.pbtxt
+                cp /cm/$m.model.py /models/$m/1/model.py
+              done
+              find /models -type f
+          volumeMounts:
+            - {name: cm, mountPath: /cm}
+            - {name: models, mountPath: /models}
+      containers:
+        - name: triton
+          image: {{ $t.image }}
+          args:
+            - tritonserver
+            - --model-repository=/models
+            - --model-control-mode={{ $t.modelControlMode }}
+            {{- if eq $t.modelControlMode "poll" }}
+            - --repository-poll-secs={{ $t.repositoryPollSeconds }}
+            {{- end }}
+            - --strict-readiness=true
+            - --allow-metrics=true
+            - --allow-gpu-metrics=false
+          ports:
+            - {name: http, containerPort: 8000}
+            - {name: grpc, containerPort: 8001}
+            - {name: metrics, containerPort: 8002}
+          readinessProbe:
+            httpGet: {path: /v2/health/ready, port: http}
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: {path: /v2/health/live, port: http}
+            periodSeconds: 10
+            failureThreshold: 6
+          startupProbe:
+            httpGet: {path: /v2/health/live, port: http}
+            periodSeconds: 10
+            failureThreshold: 60
+          resources: {{- toYaml $t.resources | nindent 12 }}
+          volumeMounts:
+            - {name: models, mountPath: /models}
+            - {name: shm, mountPath: /dev/shm}
+      volumes:
+        - name: cm
+          configMap: {name: triton-models}
+        - name: models
+          emptyDir: {}
+        - name: shm   # Python backend uses shared memory
+          emptyDir: {medium: Memory, sizeLimit: 512Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: triton
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: triton-inference-server
+spec:
+  type: {{ $t.service.type }}
+  selector:
+    app.kubernetes.io/name: triton-inference-server
+  ports:
+    - {name: http, port: 8000, targetPort: http}
+    - {name: grpc, port: 8001, targetPort: grpc}
+    - {name: metrics, port: 8002, targetPort: metrics}
+{{- if and $t.autoscaling.enabled (ne .Values.state "down") }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: triton
+  namespace: {{ .Values.namespace }}
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: triton}
+  minReplicas: {{ $t.autoscaling.minReplicas }}
+  maxReplicas: {{ $t.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: {type: Utilization, averageUtilization: {{ $t.autoscaling.targetCPUUtilizationPercentage }}}
+{{- end }}
+{{- if $t.pdb.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: triton
+  namespace: {{ .Values.namespace }}
+spec:
+  minAvailable: {{ $t.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: triton-inference-server
+{{- end }}
+{{- if .Values.loadgen.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loadgen
+  namespace: {{ .Values.namespace }}
+  labels: {app: loadgen}
+spec:
+  replicas: {{ include "r" (dict "root" $ "n" .Values.loadgen.replicas) }}
+  selector:
+    matchLabels: {app: loadgen}
+  template:
+    metadata:
+      labels: {app: loadgen}
+    spec:
+      containers:
+        - name: loadgen
+          image: {{ .Values.loadgen.image }}
+          env:
+            - {name: BASE, value: "http://triton.{{ .Values.namespace }}.svc:8000"}
+            - {name: CONCURRENCY, value: {{ .Values.loadgen.concurrency | quote }}}
+            - {name: MAX_TOKENS, value: {{ .Values.loadgen.maxTokens | quote }}}
+            - {name: SLEEP, value: {{ .Values.loadgen.sleepSeconds | quote }}}
+          command: [bash, -c]
+          args:
+            - |
+              llm() { echo "{\"inputs\":[{\"name\":\"PROMPT\",\"shape\":[1,1],\"datatype\":\"BYTES\",\"data\":[\"request $1-$2\"]},{\"name\":\"MAX_TOKENS\",\"shape\":[1,1],\"datatype\":\"INT32\",\"data\":[$MAX_TOKENS]}]}"; }
+              addsub='{"inputs":[{"name":"INPUT0","shape":[4],"datatype":"FP32","data":[1,2,3,4]},{"name":"INPUT1","shape":[4],"datatype":"FP32","data":[4,3,2,1]}]}'
+              worker() {
+                i=0
+                while true; do
+                  i=$((i+1))
+                  code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 -H 'Content-Type: application/json' -d "$(llm $1 $i)" "$BASE/v2/models/simulated_llm/infer")
+                  [ "$code" = 200 ] || echo "$(date -Is) simulated_llm HTTP $code"
+                  curl -s -o /dev/null --max-time 10 -H 'Content-Type: application/json' -d "$addsub" "$BASE/v2/models/add_sub/infer"
+                  sleep "$SLEEP"
+                done
+              }
+              for w in $(seq "$CONCURRENCY"); do worker "$w" & done
+              wait
+          resources:
+            requests: {cpu: 50m, memory: 32Mi}
+            limits: {memory: 128Mi}
+{{- end }}

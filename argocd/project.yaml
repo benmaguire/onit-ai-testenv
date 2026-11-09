@@ -18,6 +18,8 @@ spec:
     - https://kwok.sigs.k8s.io/charts/             # KWOK (runai-sim)
     - ghcr.io/run-ai/fake-gpu-operator             # Run:ai fake-gpu-operator, OCI (runai-sim)
     - ghcr.io/kai-scheduler/kai-scheduler          # KAI Scheduler, OCI (runai-sim)
+    - ghcr.io/prometheus-community/charts          # kube-prometheus-stack, OCI (observability)
+    - https://github.com/openconfig/kne.git        # KNE meshnet manifests (network-kne)
   destinations:
     - server: https://kubernetes.default.svc
       namespace: "*"
