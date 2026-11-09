@@ -12,6 +12,12 @@ documentation, specs, and a small `env.yaml` of lifecycle switches.
 
 Target cluster: a **single-node k3s** cluster with Argo CD installed.
 
+Failure/recovery **simulations** to run during tests live in
+[`simulations/`](simulations/README.md), one directory per environment. That
+includes a controller (`Simulation` CRD + HTTP API, with a central hub for
+remote clusters) that injects GPU, Dynamo and Kubernetes faults into
+`nvidia-sim`.
+
 ## Layout
 
 ```text
@@ -27,6 +33,10 @@ environments/
     README.md                   what the env is, how to use and test it
     Chart.yaml values.yaml templates/   the env's specs (a Helm chart)
     scripts/                    env-specific helpers (optional)
+simulations/
+  README.md                     simulations per environment, how they run
+  <env>/README.md               what can be simulated in that env
+  nvidia-sim/                   Go controller (agent/hub), simctl, CRDs, catalog
 scripts/
   envctl.sh                     list / up / down / remove / status / sync / purge
 docs/
