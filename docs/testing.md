@@ -52,13 +52,13 @@ topology against KNE's own proto; and a static `kne_cli` build for linux/amd64.
 - **network-kne:** cannot run on Apple Silicon (XRd and meshnet are x86_64-only). Needs the Cisco XRd image.
 - **XRd crash:** whether `container-kill` restarts an XRd router depends on which signal XRd's PID 1 exits on.
 
-### Left running
+### Teardown (also passed)
 
-The k3d cluster `testenv` with `nvidia-triton-cpu` and the simulation controller.
-The kubectl context is `k3d-testenv` (it was `k3d-devcluster` before).
+| Command | Result |
+|---|---|
+| `make down ENV=nvidia-triton-cpu` | objects deleted, namespace removed |
+| `make simulator-delete` | controller, RBAC and `sim-system` removed |
+| `make cluster-delete CLUSTER=k3d` | k3d cluster `testenv` deleted, kubeconfig entry removed. Other k3d clusters untouched |
 
-```bash
-make down ENV=nvidia-triton-cpu && make simulator-delete   # remove the environment and controller
-make cluster-delete CLUSTER=k3d                            # remove the cluster
-kubectl config use-context k3d-devcluster                  # previous context
-```
+The locally built `docker.io/testenv/simulator:local` image stays in Docker
+(`docker image rm docker.io/testenv/simulator:local` to remove it).
