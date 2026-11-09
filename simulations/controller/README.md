@@ -16,7 +16,7 @@ that manages simulations on remote clusters.
 |---|---|---|
 | **Generic faults** (any workload) | `net-latency`, `net-jitter`, `net-packet-loss`, `net-corruption`, `net-duplication`, `net-reorder`, `net-bandwidth`, `net-degraded` | `tc netem` in the pod's network namespace, optionally only towards some destinations/ports |
 | | `dependency-outage`, `dns-outage`, `service-outage` | `iptables` reject/drop in callers; NetworkPolicy in front of a Service |
-| | `cpu-stress`, `memory-stress`, `container-kill` | load in the pod's cgroup; SIGKILL/SIGTERM to the main process (restart in place) |
+| | `cpu-stress`, `memory-stress`, `container-kill` | load in the pod's cgroup; a signal the main process handles (TERM by default) for a restart in place |
 | **Kubernetes** | `pod-kill`, `network-isolate`, `node-cordon` | API |
 | **Network** (KNE routers) | `link-down`, `link-flap` (+ `net-*` with `--param interface=eth1`) | `ip link` on router interfaces |
 | **GPU** (Mokka) | `gpu-xid`, `gpu-lost`, `gpu-fallen-off-bus`, `gpu-ecc-uncorrectable`, `gpu-overheat`, `gpu-power-throttle`, `gpu-throttle`, `gpu-clocks-degraded`, `gpu-utilization`, `gpu-memory-pressure`, `gpu-nvlink-errors`, `gpu-sram-ecc`, `gpu-fabric-degraded`, `gpu-set`, `gpu-device-plugin-restart` | `nvml-mock-ctl`, device plugin kill |

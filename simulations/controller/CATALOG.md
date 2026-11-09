@@ -57,14 +57,14 @@ Network impairment (tc netem), outages (iptables, NetworkPolicy), resource stres
 
 Crash the main container (restart in place).
 
-- **Effect:** Sends a signal to PID 1 of the pod's first container, which then restarts under its restartPolicy (restartCount increases); the pod, its IP and volumes stay. Unlike pod-kill this also works for bare pods such as KNE routers.
+- **Effect:** Sends a signal to PID 1 of the pod's first container so it exits and restarts under its restartPolicy (restartCount increases); the pod, its IP and volumes stay. Unlike pod-kill this also works for bare pods such as KNE routers. The signal is sent from inside the container's PID namespace, where the kernel only delivers signals PID 1 handles: SIGKILL is always ignored there, so use a signal the app handles (most servers exit on TERM or INT). For an abrupt kill use pod-kill.
 - **Recovery:** Nothing to revert; recovered when the pods are Ready again.
 - **Targets:** `namespace`, `podSelector`, `graph`, `component`, `count`
 - **Requires:** ephemeral containers with process-namespace targeting (containerd 1.6+)
 
 | Param | Default | Description |
 |---|---|---|
-| `signal` | `KILL` | KILL or TERM. |
+| `signal` | `TERM` | TERM, INT, QUIT or HUP (must be one the app handles; KILL cannot reach PID 1 from inside the pod). |
 
 ```bash
 simctl inject container-kill --target-namespace my-ns --pod-selector app=my-app --duration 2m --wait recovered

@@ -110,6 +110,11 @@ A suite run writes, for each simulation, `<name>.report.txt` /
 text (`name | type | simctl inject args`), one file per environment in
 `simulations/<env>/suite.txt`.
 
+## What has been validated
+
+See [testing.md](testing.md). nvidia-triton-cpu plus a measured `net-latency`
+simulation have run end to end on k3d (Apple Silicon); the rest is still to be run.
+
 ## Per-environment notes
 
 | Environment | Locally |

@@ -102,6 +102,9 @@ type podKill struct {
 
 func (k *podKill) Entry() catalog.Entry { return k.entry }
 
+// OneShot: a kill has nothing to hold.
+func (k *podKill) OneShot() bool { return true }
+
 func (k *podKill) Validate(sim *simv1.Simulation) error {
 	if err := checkKnownParams(k.entry, sim); err != nil {
 		return err

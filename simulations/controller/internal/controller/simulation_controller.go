@@ -307,6 +307,9 @@ func (r *SimulationReconciler) inject(ctx context.Context, sim *simv1.Simulation
 	sim.Status.Message = res.Message
 	if sim.Spec.Duration != nil {
 		sim.Status.RecoverAt = &metav1.Time{Time: now.Add(sim.Spec.Duration.Duration)}
+	} else if inject.IsOneShot(inj) {
+		// A kill has nothing to hold: go straight to verifying recovery.
+		sim.Status.RecoverAt = &metav1.Time{Time: now}
 	}
 	setCond(sim, condInjected, metav1.ConditionTrue, "Injected", res.Message)
 	r.event(sim, "Normal", "Injected", res.Message)
@@ -314,7 +317,10 @@ func (r *SimulationReconciler) inject(ctx context.Context, sim *simv1.Simulation
 		return ctrl.Result{}, err
 	}
 	if sim.Status.RecoverAt != nil {
-		return ctrl.Result{RequeueAfter: sim.Status.RecoverAt.Sub(now)}, nil
+		if d := sim.Status.RecoverAt.Sub(now); d > 0 {
+			return ctrl.Result{RequeueAfter: d}, nil
+		}
+		return ctrl.Result{Requeue: true}, nil
 	}
 	return ctrl.Result{}, nil
 }

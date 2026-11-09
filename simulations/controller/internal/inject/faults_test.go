@@ -183,7 +183,7 @@ func TestContainerKillVerifiesRestart(t *testing.T) {
 	s := appSim("container-kill", nil)
 	s.Spec.Target.Count = 1
 	injectRecover(t, env, s)
-	if eph.runs[0].TargetContainer != "api" || strings.Join(eph.runs[0].Command, " ") != "bash -c kill -KILL 1" {
+	if eph.runs[0].TargetContainer != "api" || strings.Join(eph.runs[0].Command, " ") != "bash -c kill -TERM 1" {
 		t.Fatalf("spec %+v", eph.runs[0])
 	}
 	inj, _ := NewRegistry(All()...).Get("container-kill")
@@ -213,6 +213,7 @@ func TestFaultValidation(t *testing.T) {
 		{"net-latency", map[string]string{"interface": "eth0; rm -rf /"}},
 		{"dependency-outage", nil},
 		{"memory-stress", map[string]string{"size": "huge"}},
+		{"container-kill", map[string]string{"signal": "KILL"}},
 		{"link-down", nil},
 	}
 	for _, c := range bad {

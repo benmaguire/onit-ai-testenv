@@ -162,7 +162,7 @@ type SimulationStatus struct {
 // +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.spec.type`
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="Injected",type=date,JSONPath=`.status.injectedAt`
-// +kubebuilder:printcolumn:name="Recover-At",type=date,JSONPath=`.status.recoverAt`,priority=1
+// +kubebuilder:printcolumn:name="Recover-At",type=string,JSONPath=`.status.recoverAt`,priority=1
 // +kubebuilder:printcolumn:name="Message",type=string,JSONPath=`.status.message`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 

@@ -23,7 +23,7 @@ is `Gi0/0/0/1` (the host link).
 | Congested link | `net-bandwidth --pod-selector app=r1 --param interface=eth1 --param rate=1mbit` | throughput (iperf3 from the hosts) capped |
 | Degraded WAN | `net-degraded ... --param delay=40ms --param jitter=15ms --param loss=1 --param rate=10mbit` | everything at once |
 | Access link down | `link-down --pod-selector app=r1 --param interface=eth2` | host1 isolated; r1–r2 stays up |
-| Router crash | `container-kill --pod-selector app=r1` | XR restarts in place (pod and links kept); measures reboot + reconvergence |
+| Router crash | `container-kill --pod-selector app=r1` | XR restarts in place (pod and links kept); measures reboot + reconvergence. Untested: XRd's PID 1 must exit on the chosen `signal` (try TERM, then INT) |
 | Host misbehaviour | any generic fault on `app=host1` | e.g. `cpu-stress`, `net-duplication` from the host |
 
 Do **not** use `pod-kill` on routers: KNE pods are bare pods, so nothing

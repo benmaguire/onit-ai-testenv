@@ -65,7 +65,8 @@ make down ENV=nvidia-triton-cpu
 ```
 
 `make help` lists everything, and [docs/local.md](docs/local.md) explains the
-preflight checks, cluster types and simulation runs.
+preflight checks, cluster types and simulation runs. [docs/testing.md](docs/testing.md)
+records what has actually been run and what hasn't.
 
 ## Quick start (Argo CD)
 
