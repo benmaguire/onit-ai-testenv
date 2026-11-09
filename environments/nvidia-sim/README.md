@@ -114,6 +114,14 @@ fabric faults through Mokka; Dynamo worker/frontend kills and partitions;
 pod/network/node faults. Enable `components.simulator` (after publishing the
 image and creating its token Secret) to run them through Argo CD.
 
+## Running alongside runai-sim
+
+[runai-sim](../runai-sim/README.md) (KAI Scheduler + Run:ai fake-gpu-operator
+on KWOK virtual nodes) can share the cluster. Mokka here has a
+`type NotIn [kwok]` node affinity so it stays off the virtual nodes. To have
+the Dynamo graph scheduled by KAI, set `global.kai-scheduler.enabled: true` in
+`components.dynamoPlatform.values` (commented in [values.yaml](values.yaml)).
+
 ## Configuration
 
 Everything is in [values.yaml](values.yaml) (`components.<name>.values` is

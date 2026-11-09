@@ -411,5 +411,7 @@ func KubernetesInjectors() []Injector {
 	}
 }
 
-// All returns every simulation type for the nvidia-sim environment.
-func All() []Injector { return append(GPUInjectors(), KubernetesInjectors()...) }
+// All returns every simulation type (nvidia-sim and runai-sim).
+func All() []Injector {
+	return append(append(GPUInjectors(), KubernetesInjectors()...), RunaiInjectors()...)
+}

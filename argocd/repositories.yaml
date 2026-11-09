@@ -36,3 +36,41 @@ stringData:
   name: ngc-ai-dynamo
   type: helm
   url: https://helm.ngc.nvidia.com/nvidia/ai-dynamo
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: repo-kwok
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  name: kwok
+  type: helm
+  url: https://kwok.sigs.k8s.io/charts/
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: repo-fake-gpu-operator-oci
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  name: fake-gpu-operator-oci
+  type: helm
+  url: ghcr.io/run-ai/fake-gpu-operator
+  enableOCI: "true"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: repo-kai-scheduler-oci
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  name: kai-scheduler-oci
+  type: helm
+  url: ghcr.io/kai-scheduler/kai-scheduler
+  enableOCI: "true"

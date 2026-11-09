@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespace }}
+  labels:
+    testenv.onit.ai/name: {{ .Values.envName }}
+    testenv.onit.ai/state: {{ .Values.state }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+{{- range .Values.workloads }}
+---
+{{- if eq .kind "Job" }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Values.namespace }}
+  labels:
+    app: {{ .name }}
+    kai.scheduler/queue: {{ .queue }}
+spec:
+  # suspend instead of 0 parallelism so the Job object (and its spec) stays valid
+  suspend: {{ eq $.Values.state "down" }}
+  parallelism: {{ .parallelism }}
+  completions: {{ .parallelism }}
+  backoffLimit: 0
+  template:
+    {{- include "w.pod" (dict "root" $ "w" .) | nindent 4 }}
+{{- else }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Values.namespace }}
+  labels:
+    app: {{ .name }}
+    kai.scheduler/queue: {{ .queue }}
+spec:
+  replicas: {{ include "w.replicas" (dict "root" $ "n" .replicas) }}
+  selector:
+    matchLabels:
+      app: {{ .name }}
+  template:
+    {{- include "w.pod" (dict "root" $ "w" .) | nindent 4 }}
+{{- end }}
+{{- end }}

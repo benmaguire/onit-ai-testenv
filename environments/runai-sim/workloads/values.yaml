@@ -1,0 +1,58 @@
+# Set by the parent chart.
+state: up
+envName: runai-sim
+
+namespace: runai-sim
+
+# --- KAI queues (scheduling.run.ai/v2 Queue) -------------------------------
+# Run:ai's project/department model: a parent queue per department, a child
+# queue per project. quota = guaranteed (deserved) GPUs; limit = max (-1 none);
+# overQuotaWeight = share of idle GPUs beyond quota.
+queues:
+  - name: runai-sim
+    gpu: {quota: 24, limit: -1, overQuotaWeight: 1}
+  - name: team-a
+    parent: runai-sim
+    gpu: {quota: 16, limit: -1, overQuotaWeight: 2}
+  - name: team-b
+    parent: runai-sim
+    gpu: {quota: 8, limit: 24, overQuotaWeight: 1}
+
+# --- Sample workloads ---------------------------------------------------------
+# All run only on the virtual nodes (KWOK marks them Running; nothing executes).
+# state: down scales them to 0.
+image: registry.k8s.io/pause:3.10
+
+workloads:
+  # Whole-GPU training-style pods.
+  - name: train-whole-gpu
+    queue: team-a
+    kind: Deployment
+    replicas: 4
+    gpus: 2
+    priorityClassName: train
+    utilization: "70-90"          # fake-gpu-operator synthetic utilization
+  # Fractional GPU (Run:ai GPU sharing): two pods share each GPU.
+  - name: notebook-half-gpu
+    queue: team-b
+    kind: Deployment
+    replicas: 4
+    gpuFraction: "0.5"
+    priorityClassName: build
+    utilization: "5-20"
+  # Gang-scheduled distributed job: KAI starts all 4 pods or none.
+  - name: distributed-job
+    queue: team-a
+    kind: Job
+    parallelism: 4
+    gpus: 4
+    priorityClassName: train
+    utilization: "90-100"
+  # Inference service.
+  - name: inference
+    queue: team-b
+    kind: Deployment
+    replicas: 2
+    gpus: 1
+    priorityClassName: inference
+    utilization: "30-60"

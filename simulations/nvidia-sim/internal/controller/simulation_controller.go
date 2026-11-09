@@ -59,7 +59,7 @@ func (r *SimulationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // +kubebuilder:rbac:groups=sim.testenv.onit.ai,resources=simulations;simulations/status;simulations/finalizers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=sim.testenv.onit.ai,resources=simulationclusters;simulationclusters/status,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;delete
+// +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;delete;patch
 // +kubebuilder:rbac:groups="",resources=pods/exec,verbs=create;get
 // +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch;patch
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch

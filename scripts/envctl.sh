@@ -42,7 +42,7 @@ need_env() {
   [[ -n "$ENV" ]] || die "missing environment name"
   [[ -f "$ENVDIR/$ENV/env.yaml" ]] || die "no such environment: $ENV ($(ls "$ENVDIR" | tr '\n' ' '))"
 }
-get()  { awk -F': *' -v k="$1" '$1==k{gsub(/"/,"",$2); sub(/ *#.*/,"",$2); print $2; exit}' "$2"; }
+get()  { awk -v k="$1" 'index($0, k":")==1 {v=substr($0, length(k)+2); sub(/^ +/,"",v); sub(/ +#.*/,"",v); gsub(/"/,"",v); print v; exit}' "$2"; }
 setk() { # setk <key> <value> <file>  (top-level scalar keys only)
   sed -i.bak -E "s|^$1:.*|$1: $2|" "$3" && rm -f "$3.bak"
 }

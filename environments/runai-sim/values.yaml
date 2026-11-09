@@ -1,0 +1,134 @@
+# Set by the ApplicationSet from env.yaml; defaults let `helm template` work locally.
+state: up            # up | down
+global:
+  envName: runai-sim
+  project: testenvs
+  repoURL: https://github.com/benmaguire/onit-ai-testenv.git
+  targetRevision: main
+  argocdNamespace: argocd
+  destinationServer: https://kubernetes.default.svc
+
+# Each component is a child Argo CD Application; enabled: false removes it.
+components:
+
+  # --- KWOK: simulates kubelets for virtual nodes and their pods -------------
+  # https://kwok.sigs.k8s.io — manages Nodes annotated kwok.x-k8s.io/node=fake.
+  kwok:
+    enabled: true
+    syncWave: 0
+    namespace: runai-sim-kwok
+    repoURL: https://kwok.sigs.k8s.io/charts/
+    chart: kwok
+    version: 0.3.0
+    values: {}
+
+  # stage-fast: virtual nodes become Ready and pods Running immediately.
+  kwokStages:
+    enabled: true
+    syncWave: 1
+    namespace: runai-sim-kwok
+    repoURL: https://kwok.sigs.k8s.io/charts/
+    chart: stage-fast
+    version: 0.3.0
+    values: {}
+
+  # --- Virtual GPU nodes (chart in ./nodes) -----------------------------------
+  # One Node object per pool member. fake-gpu-operator gives each the pool's
+  # GPUs (nvidia.com/gpu, gpu.product labels). Tainted so only workloads that
+  # tolerate kwok.x-k8s.io/node=fake land on them.
+  nodes:
+    enabled: true
+    syncWave: 1
+    namespace: runai-sim
+    path: environments/runai-sim/nodes
+    values:
+      pools:
+        # Pool names must match components.fakeGpuOperator.values.topology.nodePools.
+        h100:
+          count: 4
+          labels:
+            node-role.runai-sim/pool: training
+        a100:
+          count: 2
+          labels:
+            node-role.runai-sim/pool: inference
+
+  # --- Run:ai fake-gpu-operator ----------------------------------------------
+  # https://github.com/run-ai/fake-gpu-operator — advertises GPUs on the
+  # virtual nodes, fakes nvidia-smi/DCGM metrics, reports GPU indexes to KAI's
+  # GPU-sharing reservation pods. CRDs are skipped (see templates/app-fgo.yaml).
+  fakeGpuOperator:
+    enabled: true
+    syncWave: 2
+    namespace: runai-sim-fgo
+    repoURL: ghcr.io/run-ai/fake-gpu-operator
+    chart: fake-gpu-operator
+    version: 0.2.1
+    values:
+      environment:
+        # Must match KAI's binder.resourceReservation namespace.
+        resourceReservationNamespace: kai-resource-reservation
+      # Do NOT create RuntimeClass "nvidia" (handler runc): on a cluster that
+      # also runs nvidia-sim it would replace the real nvidia handler.
+      runtimeClass:
+        enabled: false
+      # Real-node fake device plugin: OFF. Its DaemonSet selects
+      # nvidia.com/gpu.deploy.device-plugin=true, which the real GPU Operator
+      # sets on nvidia-sim's Mokka node; it would double-register GPUs there.
+      # Virtual nodes get GPUs from kwokGpuDevicePlugin instead.
+      devicePlugin:
+        enabled: false
+      kwokGpuDevicePlugin:
+        enabled: true
+      migFaker:
+        enabled: false
+      topology:
+        nodePoolLabelKey: run.ai/simulated-gpu-node-pool
+        migStrategy: none
+        nodePools:
+          h100:
+            gpuProduct: NVIDIA-H100-80GB-HBM3
+            gpuCount: 8
+            gpuMemory: 81559
+          a100:
+            gpuProduct: NVIDIA-A100-SXM4-40GB
+            gpuCount: 4
+            gpuMemory: 40960
+
+  # --- KAI Scheduler (open-source Run:ai scheduler) --------------------------
+  # https://github.com/kai-scheduler/KAI-Scheduler — queues with quota and
+  # over-quota fair share, gang scheduling, GPU sharing (fractions), binpack.
+  # v0.17.0 is the version Dynamo 1.6.1 integrates with.
+  kaiScheduler:
+    enabled: true
+    syncWave: 2
+    namespace: kai-scheduler
+    repoURL: ghcr.io/kai-scheduler/kai-scheduler
+    chart: kai-scheduler
+    version: v0.17.0
+    values:
+      openshift: false
+      global:
+        gpuSharing: true        # fractional GPUs (gpu-fraction annotation)
+      admission:
+        # Don't force runtimeClassName on fractional pods: virtual nodes run
+        # no containers and the "nvidia" RuntimeClass may not exist.
+        gpuFractionRuntimeClassName: ""
+
+  # --- Queues and sample workloads (chart in ./workloads) ---------------------
+  workloads:
+    enabled: true
+    syncWave: 3
+    namespace: runai-sim
+    path: environments/runai-sim/workloads
+    values: {}
+
+  # --- Failure/recovery simulation controller (simulations/nvidia-sim) ------
+  # Same controller as nvidia-sim (kwok-node-down, fgo-gpu-utilization,
+  # pod-kill, ...). Enable it in ONE environment per cluster only: both would
+  # own the same CRDs and sim-system namespace.
+  simulator:
+    enabled: false
+    syncWave: 4
+    namespace: sim-system
+    path: simulations/nvidia-sim/deploy/overlays/agent

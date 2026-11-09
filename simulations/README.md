@@ -8,6 +8,7 @@ them.
 | Environment | Simulations | Docs |
 |---|---|---|
 | `nvidia-sim` | 23 types: GPU faults through Mokka (Xid, lost GPU, ECC, overheat, throttling, memory pressure, NVLink, fabric…), Dynamo faults (worker/frontend kill and partition, operator restart), Kubernetes faults (pod kill, network isolation, node cordon) | [nvidia-sim/README.md](nvidia-sim/README.md) · [catalog](nvidia-sim/CATALOG.md) |
+| `runai-sim` | Run:ai-style: virtual GPU node failure (`kwok-node-down`), fake GPU utilization (`fgo-gpu-utilization`), plus pod kill / cordon / isolation on the virtual fleet | [runai-sim/README.md](runai-sim/README.md) |
 | `qa` | none yet: the generic Kubernetes types can be used once QA has workloads | [qa/README.md](qa/README.md) |
 
 ## How it works

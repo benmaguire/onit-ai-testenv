@@ -1,0 +1,8 @@
+{{- $c := .Values.components.nodes -}}
+{{- if $c.enabled }}
+{{- $vals := merge (dict "state" .Values.state "envName" .Values.global.envName) (deepCopy $c.values) }}
+{{- $source := dict "repoURL" .Values.global.repoURL "path" $c.path "targetRevision" .Values.global.targetRevision "helm" (dict "releaseName" "nodes" "valuesObject" $vals) }}
+{{- /* KWOK, fake-gpu-operator and simulations (kwok-node-down, node-cordon) change these at runtime. */}}
+{{- $ignore := list (dict "group" "" "kind" "Node" "jqPathExpressions" (list ".metadata.annotations[\"kwok.x-k8s.io/node\"]" ".spec.taints" ".spec.unschedulable")) }}
+{{ include "runaisim.app" (dict "root" $ "key" "nodes" "c" $c "source" $source "ignoreDifferences" $ignore "syncOptions" (list "RespectIgnoreDifferences=true")) }}
+{{- end }}

@@ -1,0 +1,8 @@
+{{- $c := .Values.components.kaiScheduler -}}
+{{- if $c.enabled }}
+{{- /* The KAI operator owns the scheduler's Config/SchedulingShard status and injects webhook CA bundles. */}}
+{{- $ignore := list
+      (dict "group" "admissionregistration.k8s.io" "kind" "ValidatingWebhookConfiguration" "jqPathExpressions" (list ".webhooks[]?.clientConfig.caBundle"))
+      (dict "group" "admissionregistration.k8s.io" "kind" "MutatingWebhookConfiguration" "jqPathExpressions" (list ".webhooks[]?.clientConfig.caBundle")) }}
+{{ include "runaisim.app" (dict "root" $ "key" "kai-scheduler" "c" $c "source" (include "runaisim.helmSource" (dict "c" $c "release" "kai-scheduler") | fromYaml) "ignoreDifferences" $ignore "syncOptions" (list "RespectIgnoreDifferences=true" "SkipDryRunOnMissingResource=true")) }}
+{{- end }}

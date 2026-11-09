@@ -1,0 +1,26 @@
+{{- range .Values.queues }}
+---
+apiVersion: scheduling.run.ai/v2
+kind: Queue
+metadata:
+  name: {{ .name }}
+  labels:
+    testenv.onit.ai/name: {{ $.Values.envName }}
+spec:
+  {{- with .parent }}
+  parentQueue: {{ . }}
+  {{- end }}
+  resources:
+    gpu:
+      quota: {{ .gpu.quota }}
+      limit: {{ .gpu.limit }}
+      overQuotaWeight: {{ .gpu.overQuotaWeight }}
+    cpu:
+      quota: -1
+      limit: -1
+      overQuotaWeight: 1
+    memory:
+      quota: -1
+      limit: -1
+      overQuotaWeight: 1
+{{- end }}

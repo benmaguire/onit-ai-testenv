@@ -1,0 +1,7 @@
+{{- with .Values.components.kwok }}{{ if .enabled }}
+{{ include "runaisim.app" (dict "root" $ "key" "kwok" "c" . "source" (include "runaisim.helmSource" (dict "c" . "release" "kwok") | fromYaml)) }}
+{{- end }}{{ end }}
+---
+{{- with .Values.components.kwokStages }}{{ if .enabled }}
+{{ include "runaisim.app" (dict "root" $ "key" "kwok-stages" "c" . "source" (include "runaisim.helmSource" (dict "c" . "release" "kwok-stages") | fromYaml) "syncOptions" (list "SkipDryRunOnMissingResource=true")) }}
+{{- end }}{{ end }}

@@ -7,7 +7,7 @@ with a `Simulation` CRD and an HTTP API. Test runners inject a fault, observe
 how the stack behaves, and get a verified recovery, locally or on remote
 clusters through a central hub.
 
-- **What can be simulated:** [CATALOG.md](CATALOG.md) (23 types, generated from the code)
+- **What can be simulated:** [CATALOG.md](CATALOG.md) (25 types, generated from the code). The same controller also serves the [runai-sim](../runai-sim/README.md) types
 - **How it works:** [docs/architecture.md](docs/architecture.md)
 - **API reference:** [docs/api.md](docs/api.md)
 
@@ -22,6 +22,7 @@ clusters through a central hub.
 | GPU stack | `gpu-device-plugin-restart` | kill the device plugin |
 | Dynamo | `dynamo-worker-kill`, `dynamo-frontend-kill`, `dynamo-worker-isolate`, `dynamo-frontend-isolate`, `dynamo-operator-restart` | pod kill / NetworkPolicy partition (cf. Dynamo's fault-tolerance tests) |
 | Kubernetes | `pod-kill`, `network-isolate`, `node-cordon` | generic |
+| Run:ai (runai-sim) | `kwok-node-down`, `fgo-gpu-utilization` | KWOK heartbeat / fake-gpu-operator annotations |
 
 GPU simulations can target **the GPU a pod holds**: with
 `--graph mocker-agg --component decode` the controller asks the worker
