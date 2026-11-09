@@ -131,4 +131,4 @@ components:
     enabled: false
     syncWave: 4
     namespace: sim-system
-    path: simulations/nvidia-sim/deploy/overlays/agent
+    path: simulations/controller/deploy/overlays/agent

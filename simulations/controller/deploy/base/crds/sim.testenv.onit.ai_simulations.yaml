@@ -1,0 +1,489 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.2
+  name: simulations.sim.testenv.onit.ai
+spec:
+  group: sim.testenv.onit.ai
+  names:
+    categories:
+    - testenv
+    kind: Simulation
+    listKind: SimulationList
+    plural: simulations
+    shortNames:
+    - sim
+    - sims
+    singular: simulation
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.type
+      name: Type
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.injectedAt
+      name: Injected
+      type: date
+    - jsonPath: .status.recoverAt
+      name: Recover-At
+      priority: 1
+      type: date
+    - jsonPath: .status.message
+      name: Message
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Simulation injects one failure into the environment and recovers
+          from it.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: SimulationSpec describes a fault to inject and how it recovers.
+            properties:
+              delay:
+                description: Delay before injecting.
+                type: string
+              duration:
+                description: |-
+                  Duration the fault stays injected before automatic recovery. Empty means
+                  it stays until spec.recover is set to true or the Simulation is deleted.
+                type: string
+              observe:
+                description: Observe measures the system before, during and after
+                  the fault.
+                properties:
+                  after:
+                    description: After window following verified recovery.
+                    type: string
+                  baseline:
+                    description: |-
+                      Baseline window before injection. With probes the controller probes for
+                      this long before injecting; Prometheus queries look back over it.
+                    type: string
+                  probes:
+                    description: Probes the controller runs from the baseline start
+                      to the after end.
+                    items:
+                      description: Probe is a synthetic check run on an interval.
+                      properties:
+                        address:
+                          type: string
+                        body:
+                          type: string
+                        exec:
+                          description: 'exec: command run in a pod (success = exit
+                            0).'
+                          properties:
+                            command:
+                              items:
+                                type: string
+                              type: array
+                            container:
+                              type: string
+                            namespace:
+                              type: string
+                            pod:
+                              type: string
+                            podSelector:
+                              additionalProperties:
+                                type: string
+                              type: object
+                          required:
+                          - command
+                          - namespace
+                          type: object
+                        expectStatus:
+                          description: Expected HTTP status (default any 2xx).
+                          type: integer
+                        headers:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        interval:
+                          description: Interval between probes (default 2s).
+                          type: string
+                        method:
+                          description: http method (default GET).
+                          type: string
+                        name:
+                          type: string
+                        timeout:
+                          description: Timeout per probe (default 5s).
+                          type: string
+                        type:
+                          enum:
+                          - http
+                          - tcp
+                          - exec
+                          type: string
+                        url:
+                          description: 'http: URL; tcp: host:port.'
+                          type: string
+                      required:
+                      - name
+                      - type
+                      type: object
+                    type: array
+                  profiles:
+                    description: |-
+                      Profiles are named query sets from the controller's metrics profiles
+                      (e.g. kubernetes, gpu, dynamo, triton, kai, network, probes).
+                    items:
+                      type: string
+                    type: array
+                  queries:
+                    description: |-
+                      Queries are extra PromQL queries. They are Go templates with
+                      {{.Namespace}}, {{.Pods}} (regex of target pods), {{.Nodes}},
+                      {{.Simulation}}, {{.Rate}} (rate window).
+                    items:
+                      description: MetricQuery is one PromQL expression; aggregate
+                        it to a single series.
+                      properties:
+                        higherIsBetter:
+                          description: HigherIsBetter flips the sign convention for
+                            regressions in reports.
+                          type: boolean
+                        name:
+                          type: string
+                        query:
+                          type: string
+                        unit:
+                          type: string
+                      required:
+                      - name
+                      - query
+                      type: object
+                    type: array
+                  step:
+                    description: Step of Prometheus range queries (default 15s).
+                    type: string
+                type: object
+              params:
+                additionalProperties:
+                  type: string
+                description: 'Params are type-specific parameters (all strings), e.g.
+                  {"xid": "79"}.'
+                type: object
+              recover:
+                description: Recover requests recovery now. Set by `simctl recover`
+                  / the API.
+                type: boolean
+              recoveryTimeout:
+                description: |-
+                  RecoveryTimeout bounds how long recovery verification may take
+                  (e.g. waiting for killed pods to be Ready again). Default 5m.
+                type: string
+              target:
+                description: Target of the simulation.
+                properties:
+                  component:
+                    description: 'Component is a Dynamo component type: frontend,
+                      decode, prefill, worker.'
+                    type: string
+                  count:
+                    description: Count limits how many matched pods/nodes are affected.
+                      0 means all.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  gpu:
+                    description: 'GPU on the node: an index, "all", or a UUID. Default
+                      "all".'
+                    type: string
+                  graph:
+                    description: |-
+                      Graph is a DynamoGraphDeployment name; with Component it builds the pod
+                      selector for Dynamo pods.
+                    type: string
+                  namespace:
+                    description: Namespace of the target pods. Defaults to the Simulation's
+                      namespace.
+                    type: string
+                  node:
+                    description: Node name. GPU and node simulations act on this node.
+                    type: string
+                  nodeSelector:
+                    additionalProperties:
+                      type: string
+                    description: NodeSelector selects nodes by label when Node is
+                      empty.
+                    type: object
+                  podSelector:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      PodSelector selects target pods by label. For GPU simulations, the GPUs
+                      allocated to the selected pods are targeted instead of Target.GPU.
+                    type: object
+                type: object
+              ttlAfterFinished:
+                description: |-
+                  TTLAfterFinished deletes the Simulation this long after it Recovered or
+                  Failed (and its observation completed). Empty keeps it.
+                type: string
+              type:
+                description: Type of simulation, e.g. gpu-xid, gpu-overheat, dynamo-worker-kill.
+                minLength: 1
+                type: string
+            required:
+            - type
+            type: object
+          status:
+            description: SimulationStatus is the observed state of a Simulation.
+            properties:
+              conditions:
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              data:
+                additionalProperties:
+                  type: string
+                description: Data is injector state needed for recovery (e.g. original
+                  values).
+                type: object
+              injectedAt:
+                format: date-time
+                type: string
+              message:
+                type: string
+              observation:
+                description: Observation holds baseline / fault / recovery / after
+                  measurements.
+                properties:
+                  afterEnd:
+                    format: date-time
+                    type: string
+                  baselineStart:
+                    description: Window boundaries.
+                    format: date-time
+                    type: string
+                  complete:
+                    description: Complete once every window was measured.
+                    type: boolean
+                  message:
+                    type: string
+                  metrics:
+                    items:
+                      description: MetricSummary is a query's stats per window.
+                      properties:
+                        afterChangePercent:
+                          description: 'AfterChangePercent: after-window mean vs baseline
+                            mean (did it return to normal?).'
+                          type: string
+                        error:
+                          type: string
+                        faultChangePercent:
+                          description: 'FaultChangePercent: fault-window mean vs baseline
+                            mean.'
+                          type: string
+                        name:
+                          type: string
+                        query:
+                          type: string
+                        unit:
+                          type: string
+                        windows:
+                          additionalProperties:
+                            description: Stats summarises a metric over one window.
+                            properties:
+                              last:
+                                type: string
+                              max:
+                                type: string
+                              mean:
+                                description: Values are decimal strings (CRDs avoid
+                                  floats).
+                                type: string
+                              min:
+                                type: string
+                              p95:
+                                type: string
+                              samples:
+                                type: integer
+                            required:
+                            - samples
+                            type: object
+                          description: 'Windows: baseline, fault, recovery, after.'
+                          type: object
+                      required:
+                      - name
+                      type: object
+                    type: array
+                  probes:
+                    items:
+                      description: ProbeSummary is a probe's stats per window.
+                      properties:
+                        name:
+                          type: string
+                        windows:
+                          additionalProperties:
+                            description: ProbeStats summarises a probe over one window.
+                            properties:
+                              count:
+                                type: integer
+                              failures:
+                                type: integer
+                              latencyMaxMs:
+                                type: string
+                              latencyMeanMs:
+                                type: string
+                              latencyP50Ms:
+                                type: string
+                              latencyP95Ms:
+                                type: string
+                              latencyP99Ms:
+                                type: string
+                              longestOutage:
+                                description: LongestOutage is the longest run of consecutive
+                                  failures.
+                                type: string
+                              successRate:
+                                type: string
+                            required:
+                            - count
+                            - failures
+                            type: object
+                          type: object
+                      required:
+                      - name
+                      type: object
+                    type: array
+                type: object
+              observedGeneration:
+                format: int64
+                type: integer
+              phase:
+                description: Phase is the lifecycle phase of a Simulation.
+                enum:
+                - Pending
+                - Waiting
+                - Baselining
+                - Active
+                - Recovering
+                - Recovered
+                - Failed
+                type: string
+              recoverAt:
+                description: RecoverAt is when automatic recovery is due (InjectedAt
+                  + Duration).
+                format: date-time
+                type: string
+              recoveredAt:
+                format: date-time
+                type: string
+              recoveryStartedAt:
+                format: date-time
+                type: string
+              targets:
+                description: Targets the simulation acted on.
+                items:
+                  description: |-
+                    AffectedTarget is something a simulation acted on, recorded so recovery can
+                    undo exactly what injection did.
+                  properties:
+                    detail:
+                      type: string
+                    gpu:
+                      description: GPU index on Node, for GPU targets.
+                      type: string
+                    kind:
+                      description: 'Kind of target: Node, Pod, GPU, NetworkPolicy.'
+                      type: string
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                    node:
+                      type: string
+                  required:
+                  - kind
+                  type: object
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

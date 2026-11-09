@@ -1,0 +1,119 @@
+{{- $l := .Values.labels }}
+{{- with .Values.targets }}
+{{- if .simulator.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: testenv-simulator
+  labels: {{- toYaml $l | nindent 4 }}
+spec:
+  namespaceSelector: {any: true}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: testenv-simulator
+  endpoints:
+    - port: metrics
+      interval: 5s
+{{- end }}
+{{- if .dcgmExporter.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: dcgm-exporter
+  labels: {{- toYaml $l | nindent 4 }}
+spec:
+  namespaceSelector: {any: true}
+  selector:
+    matchExpressions:
+      - {key: app, operator: In, values: [nvidia-dcgm-exporter, nvidia-dcgm-exporter-kwok]}
+  endpoints:
+    - port: gpu-metrics
+      interval: 15s
+      honorLabels: true
+{{- end }}
+{{- if .dynamo.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: dynamo-frontend
+  labels: {{- toYaml $l | nindent 4 }}
+spec:
+  namespaceSelector: {any: true}
+  selector:
+    matchLabels:
+      nvidia.com/dynamo-component-type: frontend
+  podMetricsEndpoints:
+    - portNumber: 8000
+      path: /metrics
+      interval: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: dynamo-workers
+  labels: {{- toYaml $l | nindent 4 }}
+spec:
+  namespaceSelector: {any: true}
+  selector:
+    matchExpressions:
+      - {key: nvidia.com/dynamo-component-type, operator: In, values: [decode, prefill, worker, main]}
+  podMetricsEndpoints:
+    - portNumber: 9090
+      path: /metrics
+      interval: 10s
+{{- end }}
+{{- if .triton.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: triton
+  labels: {{- toYaml $l | nindent 4 }}
+spec:
+  namespaceSelector: {any: true}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: triton-inference-server
+  podMetricsEndpoints:
+    - portNumber: 8002
+      path: /metrics
+      interval: 10s
+{{- end }}
+{{- if .kai.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: kai-scheduler
+  labels: {{- toYaml $l | nindent 4 }}
+spec:
+  namespaceSelector:
+    matchNames: [kai-scheduler]
+  selector:
+    matchExpressions:
+      - {key: app, operator: In, values: [scheduler, binder, podgrouper, queuecontroller, podgroupcontroller]}
+  podMetricsEndpoints:
+    - portNumber: 8080
+      path: /metrics
+      interval: 15s
+{{- end }}
+{{- if .gnmic.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: gnmic
+  labels: {{- toYaml $l | nindent 4 }}
+spec:
+  namespaceSelector: {any: true}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: gnmic
+  endpoints:
+    - port: metrics
+      interval: 10s
+{{- end }}
+{{- end }}

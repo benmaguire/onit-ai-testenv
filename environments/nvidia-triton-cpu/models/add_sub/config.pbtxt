@@ -1,0 +1,12 @@
+name: "add_sub"
+backend: "python"
+max_batch_size: 0
+input [
+  { name: "INPUT0" data_type: TYPE_FP32 dims: [ 4 ] },
+  { name: "INPUT1" data_type: TYPE_FP32 dims: [ 4 ] }
+]
+output [
+  { name: "OUTPUT0" data_type: TYPE_FP32 dims: [ 4 ] },
+  { name: "OUTPUT1" data_type: TYPE_FP32 dims: [ 4 ] }
+]
+instance_group [ { kind: KIND_CPU count: 1 } ]

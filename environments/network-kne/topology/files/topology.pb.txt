@@ -1,0 +1,39 @@
+# KNE topology: host1 — r1 ══ r2 — host2
+#   r1 eth1 (Gi0/0/0/0) 192.168.12.1/30  ══  r2 eth1 (Gi0/0/0/0) 192.168.12.2/30
+#   r1 eth2 (Gi0/0/0/1) 192.168.1.1/24   —   host1 eth1 192.168.1.10/24
+#   r2 eth2 (Gi0/0/0/1) 192.168.2.1/24   —   host2 eth1 192.168.2.10/24
+# OSPF area 0 + iBGP (AS 65000) between loopbacks 1.1.1.1 / 2.2.2.2.
+# Services are ClusterIP only: on k3s a LoadBalancer service would bind node
+# ports (incl. 22) through ServiceLB.
+name: "{{ .Values.topologyName }}"
+{{- range $r := list (dict "n" "r1") (dict "n" "r2") }}
+nodes: {
+    name: "{{ $r.n }}"
+    vendor: CISCO
+    model: "xrd"
+    os: "ios-xr"
+    config: {
+        image: "{{ $.Values.routerImage }}"
+        file: "{{ $r.n }}.config"
+    }
+    interfaces: { key: "eth1" value: { name: "GigabitEthernet0/0/0/0" } }
+    interfaces: { key: "eth2" value: { name: "GigabitEthernet0/0/0/1" } }
+    services: { key: 22   value: { names: "ssh"  inside: 22    type: CLUSTER_IP } }
+    services: { key: 9339 value: { names: "gnmi" inside: 57400 type: CLUSTER_IP } }
+}
+{{- end }}
+{{- range $h := list (dict "n" "host1" "ip" "192.168.1.10" "gw" "192.168.1.1" "peer" "192.168.2.0/24") (dict "n" "host2" "ip" "192.168.2.10" "gw" "192.168.2.1" "peer" "192.168.1.0/24") }}
+nodes: {
+    name: "{{ $h.n }}"
+    vendor: HOST
+    config: {
+        image: "{{ $.Values.hostImage }}"
+        command: "/bin/bash"
+        args: "-c"
+        args: "ip addr add {{ $h.ip }}/24 dev eth1 && ip link set eth1 up && ip route add {{ $h.peer }} via {{ $h.gw }} && ip route add 192.168.12.0/30 via {{ $h.gw }} && ip route add 1.1.1.1/32 via {{ $h.gw }} && ip route add 2.2.2.2/32 via {{ $h.gw }}; exec sleep infinity"
+    }
+}
+{{- end }}
+links: { a_node: "r1" a_int: "eth1" z_node: "r2" z_int: "eth1" }
+links: { a_node: "r1" a_int: "eth2" z_node: "host1" z_int: "eth1" }
+links: { a_node: "r2" a_int: "eth2" z_node: "host2" z_int: "eth1" }

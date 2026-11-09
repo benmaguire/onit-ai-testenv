@@ -1,0 +1,31 @@
+{{- $m := .Values.models.simulatedLLM }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: triton-models
+  namespace: {{ .Values.namespace }}
+  labels:
+    testenv.onit.ai/name: {{ .Values.global.envName }}
+data:
+  add_sub.config.pbtxt: |-
+    {{- .Files.Get "models/add_sub/config.pbtxt" | nindent 4 }}
+  add_sub.model.py: |-
+    {{- .Files.Get "models/add_sub/1/model.py" | nindent 4 }}
+  simulated_llm.model.py: |-
+    {{- .Files.Get "models/simulated_llm/1/model.py" | nindent 4 }}
+  simulated_llm.config.pbtxt: |-
+    name: "simulated_llm"
+    backend: "python"
+    max_batch_size: {{ $m.maxBatchSize }}
+    input [
+      { name: "PROMPT" data_type: TYPE_STRING dims: [ 1 ] },
+      { name: "MAX_TOKENS" data_type: TYPE_INT32 dims: [ 1 ] }
+    ]
+    output [
+      { name: "TEXT" data_type: TYPE_STRING dims: [ 1 ] },
+      { name: "TOKENS" data_type: TYPE_INT32 dims: [ 1 ] }
+    ]
+    dynamic_batching { max_queue_delay_microseconds: {{ $m.maxQueueDelayMicroseconds }} }
+    instance_group [ { kind: KIND_CPU count: {{ $m.instances }} } ]
+    parameters: { key: "base_latency_ms" value: { string_value: "{{ $m.baseLatencyMs }}" } }
+    parameters: { key: "per_token_ms" value: { string_value: "{{ $m.perTokenMs }}" } }

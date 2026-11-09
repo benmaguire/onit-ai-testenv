@@ -1,0 +1,22 @@
+# Each target can be switched off. Monitors whose targets don't exist simply
+# scrape nothing.
+labels:
+  app.kubernetes.io/part-of: testenvs
+  testenv.onit.ai/name: observability
+
+targets:
+  simulator:          # simulation controller: sim_probe_*, sim_simulation_* (any namespace running it)
+    enabled: true
+  dcgmExporter:       # GPU Operator dcgm-exporter (nvidia-sim) and fake-gpu-operator (runai-sim)
+    enabled: true
+  dynamo:             # Dynamo frontends (:8000) and workers (system port :9090), all namespaces
+    enabled: true
+  triton:             # Triton Inference Server (:8002), nvidia-triton-cpu
+    enabled: true
+  kai:                # KAI Scheduler components (runai-sim)
+    enabled: true
+  gnmic:              # gNMI telemetry from KNE routers (network-kne)
+    enabled: true
+
+dashboards:
+  enabled: true

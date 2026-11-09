@@ -1,0 +1,31 @@
+# Degrade both directions of the r1–r2 link: one Simulation per router.
+apiVersion: sim.testenv.onit.ai/v1alpha1
+kind: Simulation
+metadata:
+  name: degraded-core-r1
+  namespace: sim-system
+spec:
+  type: net-degraded
+  target: {namespace: xrd-lab, podSelector: {app: r1}}
+  params: {interface: eth1, delay: 40ms, jitter: 15ms, loss: "1", rate: 10mbit}
+  duration: 10m
+  observe:
+    baseline: 2m
+    after: 2m
+    profiles: [network]
+    probes:
+      - name: ping
+        type: exec
+        interval: 1s
+        exec: {namespace: xrd-lab, podSelector: {app: host1}, command: [ping, -c1, -W2, 192.168.2.10]}
+---
+apiVersion: sim.testenv.onit.ai/v1alpha1
+kind: Simulation
+metadata:
+  name: degraded-core-r2
+  namespace: sim-system
+spec:
+  type: net-degraded
+  target: {namespace: xrd-lab, podSelector: {app: r2}}
+  params: {interface: eth1, delay: 40ms, jitter: 15ms, loss: "1", rate: 10mbit}
+  duration: 10m

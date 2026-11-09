@@ -1,0 +1,21 @@
+# Extra or overriding metrics profiles for `observe.profiles`, merged over the
+# built-in ones (kubernetes, gpu, dynamo, triton, kai, network, probes; see
+# `simctl profiles`). Queries are Go templates with {{.Namespace}}, {{.Pods}},
+# {{.Nodes}}, {{.Simulation}}, {{.Rate}} and must aggregate to one series.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: simulator-metrics-profiles
+data:
+  profiles.yaml: |
+    node:
+      - name: node_cpu_busy_ratio
+        query: 1 - avg(rate(node_cpu_seconds_total{mode="idle"}[{{.Rate}}]))
+        unit: ratio
+      - name: node_memory_available_bytes
+        query: sum(node_memory_MemAvailable_bytes)
+        unit: bytes
+        higherIsBetter: true
+      - name: node_net_drops_per_s
+        query: sum(rate(node_network_receive_drop_total[{{.Rate}}]) + rate(node_network_transmit_drop_total[{{.Rate}}]))
+        unit: pkt/s

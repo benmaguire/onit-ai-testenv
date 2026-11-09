@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gnmic-credentials
+  namespace: {{ .Values.namespace }}
+stringData:
+  GNMIC_USERNAME: {{ .Values.routerUsername | quote }}
+  GNMIC_PASSWORD: {{ .Values.routerPassword | quote }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gnmic
+  namespace: {{ .Values.namespace }}
+data:
+  gnmic.yaml: |
+    insecure: true
+    encoding: json_ietf
+    log: true
+    targets:
+      {{- range .Values.routers }}
+      {{ . }}:
+        address: service-{{ . }}-clusterip.{{ $.Values.topologyName }}.svc:9339
+      {{- end }}
+    subscriptions:
+      interfaces:
+        paths:
+          - /interfaces/interface/state/counters
+          - /interfaces/interface/state/oper-status
+        mode: stream
+        stream-mode: sample
+        sample-interval: {{ .Values.sampleInterval }}
+      bgp:
+        paths:
+          - /network-instances/network-instance/protocols/protocol/bgp/neighbors/neighbor/state/session-state
+        mode: stream
+        stream-mode: on-change
+    outputs:
+      prometheus:
+        type: prometheus
+        listen: :9804
+        path: /metrics
+        metric-prefix: gnmic
+        append-subscription-name: false
+        strings-as-labels: true
+        export-timestamps: true
+        expiration: 60s
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gnmic
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: gnmic
+spec:
+  replicas: {{ if eq .Values.state "down" }}0{{ else }}1{{ end }}
+  selector:
+    matchLabels: {app.kubernetes.io/name: gnmic}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: gnmic}
+      annotations:
+        checksum/config: {{ .Values | toJson | sha256sum }}
+    spec:
+      containers:
+        - name: gnmic
+          image: {{ .Values.image }}
+          args: [--config, /etc/gnmic/gnmic.yaml, subscribe]
+          envFrom:
+            - secretRef: {name: gnmic-credentials}
+          ports:
+            - {name: metrics, containerPort: 9804}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {memory: 256Mi}
+          volumeMounts:
+            - {name: config, mountPath: /etc/gnmic}
+      volumes:
+        - name: config
+          configMap: {name: gnmic}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gnmic
+  namespace: {{ .Values.namespace }}
+  labels: {app.kubernetes.io/name: gnmic}
+spec:
+  selector: {app.kubernetes.io/name: gnmic}
+  ports:
+    - {name: metrics, port: 9804, targetPort: metrics}

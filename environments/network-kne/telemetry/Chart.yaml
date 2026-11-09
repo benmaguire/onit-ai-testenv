@@ -1,0 +1,5 @@
+apiVersion: v2
+name: network-kne-telemetry
+description: gnmic collecting gNMI telemetry from the KNE routers, exposed for Prometheus
+type: application
+version: 0.1.0

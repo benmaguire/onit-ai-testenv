@@ -1,0 +1,9 @@
+{{- $c := .Values.components.prometheusStack -}}
+{{- if $c.enabled }}
+{{- $vals := deepCopy $c.values }}
+{{- if eq .Values.state "down" }}
+{{- $_ := set $vals "grafana" (merge (dict "replicas" 0) ($vals.grafana | default dict)) }}
+{{- end }}
+{{- $src := dict "repoURL" $c.repoURL "chart" $c.chart "targetRevision" $c.version "helm" (dict "releaseName" "kube-prometheus-stack" "valuesObject" $vals) }}
+{{ include "obs.app" (dict "root" $ "key" "prometheus-stack" "c" $c "source" $src) }}
+{{- end }}

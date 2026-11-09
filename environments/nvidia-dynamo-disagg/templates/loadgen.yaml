@@ -1,0 +1,45 @@
+{{- if .Values.loadgen.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loadgen
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: loadgen
+    testenv.onit.ai/name: {{ .Values.global.envName }}
+spec:
+  replicas: {{ include "r" (dict "root" $ "n" .Values.loadgen.replicas) }}
+  selector:
+    matchLabels: {app: loadgen}
+  template:
+    metadata:
+      labels: {app: loadgen}
+    spec:
+      containers:
+        - name: loadgen
+          image: {{ .Values.loadgen.image }}
+          env:
+            - {name: URL, value: "http://{{ .Values.name }}-frontend.{{ .Values.namespace }}.svc:8000/v1/chat/completions"}
+            - {name: MODEL, value: {{ .Values.model | quote }}}
+            - {name: CONCURRENCY, value: {{ .Values.loadgen.concurrency | quote }}}
+            - {name: MAX_TOKENS, value: {{ .Values.loadgen.maxTokens | quote }}}
+            - {name: SLEEP, value: {{ .Values.loadgen.sleepSeconds | quote }}}
+          command: [bash, -c]
+          args:
+            - |
+              worker() {
+                i=0
+                while true; do
+                  i=$((i+1))
+                  body="{\"model\":\"$MODEL\",\"max_tokens\":$MAX_TOKENS,\"messages\":[{\"role\":\"system\",\"content\":\"You are a helpful assistant for the onit test environment. Answer briefly.\"},{\"role\":\"user\",\"content\":\"Request $1-$i: summarise topic $((i % 20))\"}]}"
+                  code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 60 -H 'Content-Type: application/json' -d "$body" "$URL")
+                  [ "$code" = 200 ] || echo "$(date -Is) worker $1 HTTP $code"
+                  sleep "$SLEEP"
+                done
+              }
+              for w in $(seq "$CONCURRENCY"); do worker "$w" & done
+              wait
+          resources:
+            requests: {cpu: 50m, memory: 32Mi}
+            limits: {memory: 128Mi}
+{{- end }}

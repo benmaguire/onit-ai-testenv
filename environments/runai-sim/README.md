@@ -38,7 +38,7 @@ node with full driver fidelity (Mokka) plus a cheap virtual fleet (FGO).
 | 2 | **Run:ai fake-gpu-operator**: GPU capacity and `nvidia.com/gpu.*` labels on the virtual nodes, fake DCGM metrics, GPU index reporting for fractions | `oci://ghcr.io/run-ai/fake-gpu-operator` `0.2.1` | `runai-sim-fgo` | `runai-sim-fake-gpu-operator` |
 | 2 | **KAI Scheduler** with GPU sharing on (v0.17.0, the version Dynamo 1.6.1 integrates with) | `oci://ghcr.io/kai-scheduler/kai-scheduler` `v0.17.0` | `kai-scheduler` | `runai-sim-kai-scheduler` |
 | 3 | **Queues + sample workloads** | [workloads/](workloads/) | `runai-sim` | `runai-sim-workloads` |
-| 4 | Simulation controller (optional, off) | [simulations/nvidia-sim](../../simulations/nvidia-sim/README.md) | `sim-system` | `runai-sim-simulator` |
+| 4 | Simulation controller (optional, off) | [simulations/controller](../../simulations/controller/README.md) | `sim-system` | `runai-sim-simulator` |
 
 ```mermaid
 flowchart LR

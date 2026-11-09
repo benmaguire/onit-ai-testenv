@@ -5,20 +5,20 @@ Failure and recovery simulations for the
 GPU nodes (Run:ai fake-gpu-operator) scheduled by KAI Scheduler.
 
 They run on the same controller as nvidia-sim
-([simulations/nvidia-sim](../nvidia-sim/README.md), same API, `simctl`, hub and
+([simulations/controller](../controller/README.md), same API, `simctl`, hub and
 agents). Enable it with `components.simulator.enabled: true` in
 `environments/runai-sim/values.yaml`, **or** in nvidia-sim's: only one per
-cluster. Full parameters for each type are in the [catalog](../nvidia-sim/CATALOG.md#runai-runai-sim).
+cluster. Full parameters for each type are in the [catalog](../controller/CATALOG.md#runai-runai-sim).
 
 ## Available
 
 | Type | What happens | What it tests |
 |---|---|---|
-| [`kwok-node-down`](../nvidia-sim/CATALOG.md#kwok-node-down) | The virtual node's KWOK heartbeat stops: NotReady after ~40s, unreachable taint, pods evicted after 300s by default | GPU node loss: capacity drops out of queues, KAI reschedules evicted workloads, gang jobs restart together, alerting on node loss |
-| [`fgo-gpu-utilization`](../nvidia-sim/CATALOG.md#fgo-gpu-utilization) | FGO's synthetic GPU utilization for the matched pods changes (e.g. `0`, `95-100`) | idle-GPU detection/reclaim, consolidation, utilization dashboards, autoscaling on GPU metrics |
-| [`node-cordon`](../nvidia-sim/CATALOG.md#node-cordon) | Virtual nodes become unschedulable (`--node-selector type=kwok`) | capacity shrink without eviction; pending workloads and queue fairness |
-| [`pod-kill`](../nvidia-sim/CATALOG.md#pod-kill) | Workload pods are deleted | workload restarts, gang re-admission (kill one pod of `distributed-job`) |
-| [`network-isolate`](../nvidia-sim/CATALOG.md#network-isolate) | NetworkPolicy deny for pods | of limited use: pods on virtual nodes don't really run. Useful against the real controllers (KAI, FGO) |
+| [`kwok-node-down`](../controller/CATALOG.md#kwok-node-down) | The virtual node's KWOK heartbeat stops: NotReady after ~40s, unreachable taint, pods evicted after 300s by default | GPU node loss: capacity drops out of queues, KAI reschedules evicted workloads, gang jobs restart together, alerting on node loss |
+| [`fgo-gpu-utilization`](../controller/CATALOG.md#fgo-gpu-utilization) | FGO's synthetic GPU utilization for the matched pods changes (e.g. `0`, `95-100`) | idle-GPU detection/reclaim, consolidation, utilization dashboards, autoscaling on GPU metrics |
+| [`node-cordon`](../controller/CATALOG.md#node-cordon) | Virtual nodes become unschedulable (`--node-selector type=kwok`) | capacity shrink without eviction; pending workloads and queue fairness |
+| [`pod-kill`](../controller/CATALOG.md#pod-kill) | Workload pods are deleted | workload restarts, gang re-admission (kill one pod of `distributed-job`) |
+| [`network-isolate`](../controller/CATALOG.md#network-isolate) | NetworkPolicy deny for pods | of limited use: pods on virtual nodes don't really run. Useful against the real controllers (KAI, FGO) |
 
 GPU types that go through Mokka (`gpu-*`) and `dynamo-*` types target
 nvidia-sim's Mokka node and Dynamo graph; they do not apply to virtual nodes.

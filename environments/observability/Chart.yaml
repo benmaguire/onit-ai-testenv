@@ -1,0 +1,5 @@
+apiVersion: v2
+name: testenv-observability
+description: App-of-apps for the observability environment (kube-prometheus-stack + scrape config + dashboards)
+type: application
+version: 0.1.0

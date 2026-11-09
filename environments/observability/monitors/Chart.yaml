@@ -1,0 +1,5 @@
+apiVersion: v2
+name: observability-monitors
+description: ServiceMonitors/PodMonitors for the test environments, and Grafana dashboards
+type: application
+version: 0.1.0

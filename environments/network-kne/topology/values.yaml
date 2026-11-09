@@ -1,0 +1,21 @@
+state: up
+envName: network-kne
+
+# Namespace for the runner Job and its config (Argo-managed).
+namespace: network-kne
+# Topology name = namespace KNE creates for the routers and hosts.
+topologyName: xrd-lab
+
+# Cisco XRd control-plane image. NOT public: download it from Cisco (CCO
+# login) and import it on the node, or push it to a registry the node can
+# pull from. See README "Router image".
+routerImage: ios-xr/xrd-control-plane:24.4.2
+hostImage: nicolaka/netshoot:v0.16
+# Router login (lab only).
+routerUsername: cisco
+routerPassword: C1sco12345
+
+runner:
+  # Built by .github/workflows/kne-runner.yaml from runner/Dockerfile.
+  image: ghcr.io/benmaguire/onit-ai-testenv/kne-runner:v0.3.4
+  timeout: 20m

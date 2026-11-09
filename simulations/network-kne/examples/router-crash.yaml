@@ -1,0 +1,18 @@
+apiVersion: sim.testenv.onit.ai/v1alpha1
+kind: Simulation
+metadata:
+  name: r1-crash
+  namespace: sim-system
+spec:
+  type: container-kill
+  target: {namespace: xrd-lab, podSelector: {app: r1}}
+  recoveryTimeout: 15m        # XRd boot + reconvergence
+  observe:
+    baseline: 1m
+    after: 3m
+    profiles: [network, kubernetes]
+    probes:
+      - name: ping
+        type: exec
+        interval: 2s
+        exec: {namespace: xrd-lab, podSelector: {app: host1}, command: [ping, -c1, -W1, 192.168.2.10]}

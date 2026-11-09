@@ -1,0 +1,25 @@
+apiVersion: sim.testenv.onit.ai/v1alpha1
+kind: Simulation
+metadata:
+  generateName: core-link-flap-
+  namespace: sim-system
+  labels: {testrun: example}
+spec:
+  type: link-flap
+  target:
+    namespace: xrd-lab
+    podSelector: {app: r1}
+  params: {interface: eth1, downSeconds: "5", upSeconds: "25"}
+  duration: 5m
+  observe:
+    baseline: 1m
+    after: 2m
+    profiles: [network, kubernetes]
+    probes:
+      - name: host1-to-host2
+        type: exec
+        interval: 1s
+        exec:
+          namespace: xrd-lab
+          podSelector: {app: host1}
+          command: [ping, -c1, -W1, 192.168.2.10]

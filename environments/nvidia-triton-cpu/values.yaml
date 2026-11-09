@@ -1,0 +1,44 @@
+state: up
+global:
+  envName: nvidia-triton-cpu
+
+namespace: nvidia-triton-cpu
+
+triton:
+  # Full image (~20 GB, includes Python/ONNX/PyTorch backends; runs without GPUs).
+  image: nvcr.io/nvidia/tritonserver:26.10-py3
+  replicas: 2
+  # Poll the model repository so ConfigMap edits are picked up without restarts.
+  modelControlMode: poll
+  repositoryPollSeconds: 30
+  resources:
+    requests: {cpu: 500m, memory: 1Gi}
+    limits: {cpu: "2", memory: 4Gi}
+  service:
+    type: ClusterIP
+  # Autoscale on CPU (needs metrics-server; k3s ships it).
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+  pdb:
+    enabled: true
+    minAvailable: 1
+
+# simulated_llm: latency = baseLatencyMs + perTokenMs * max_tokens, batched.
+models:
+  simulatedLLM:
+    baseLatencyMs: 40
+    perTokenMs: 2
+    maxBatchSize: 8
+    maxQueueDelayMicroseconds: 5000
+    instances: 2
+
+loadgen:
+  enabled: true
+  replicas: 1
+  image: nicolaka/netshoot:v0.16
+  concurrency: 4
+  maxTokens: 32
+  sleepSeconds: "0.1"

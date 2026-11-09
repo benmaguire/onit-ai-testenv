@@ -146,11 +146,11 @@ components:
   # --- Failure/recovery simulation controller (simulations/nvidia-sim) ------
   # Simulation CRD + HTTP API for injecting GPU, Dynamo and Kubernetes faults
   # during tests. Off until the image is published (see
-  # simulations/nvidia-sim/README.md) and the API token Secret exists.
+  # simulations/controller/README.md) and the API token Secret exists.
   simulator:
     enabled: false
     syncWave: 4
     namespace: sim-system
     # deploy/overlays/agent (this cluster only), agent-remote (managed by a
     # hub elsewhere) or hub (central controller for many clusters)
-    path: simulations/nvidia-sim/deploy/overlays/agent
+    path: simulations/controller/deploy/overlays/agent

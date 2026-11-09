@@ -1,0 +1,34 @@
+state: up
+global:
+  envName: network-kne
+  project: testenvs
+  repoURL: https://github.com/benmaguire/onit-ai-testenv.git
+  targetRevision: main
+  argocdNamespace: argocd
+  destinationServer: https://kubernetes.default.svc
+
+components:
+  # meshnet CNI: wires pod-to-pod links between KNE nodes (vendored KNE v0.3.4,
+  # patched for k3s paths; see meshnet/kustomization.yaml).
+  meshnet:
+    enabled: true
+    syncWave: 0
+    namespace: meshnet
+    path: environments/network-kne/meshnet
+
+  # The topology (topology/files/topology.pb.txt), created by `kne create`
+  # in a Job on each sync and removed by `kne delete` (state down / env removal).
+  topology:
+    enabled: true
+    syncWave: 1
+    namespace: network-kne
+    path: environments/network-kne/topology
+    values: {}
+
+  # gnmic: gNMI streaming telemetry from the routers -> Prometheus metrics.
+  telemetry:
+    enabled: true
+    syncWave: 2
+    namespace: network-kne
+    path: environments/network-kne/telemetry
+    values: {}
