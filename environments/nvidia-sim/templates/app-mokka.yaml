@@ -1,0 +1,5 @@
+{{- $c := .Values.components.mokka -}}
+{{- if $c.enabled }}
+{{- $source := dict "repoURL" $c.repoURL "chart" $c.chart "targetRevision" $c.version "helm" (dict "releaseName" "nvml-mock" "valuesObject" $c.values) }}
+{{ include "nvsim.app" (dict "root" $ "key" "mokka" "c" $c "source" $source) }}
+{{- end }}

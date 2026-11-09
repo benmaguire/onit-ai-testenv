@@ -1,0 +1,65 @@
+{{- define "graph.replicas" -}}
+{{- if eq .root.Values.state "down" }}0{{ else }}{{ .n }}{{ end -}}
+{{- end }}
+apiVersion: nvidia.com/v1beta1
+kind: DynamoGraphDeployment
+metadata:
+  name: {{ .Values.name }}
+  labels:
+    app.kubernetes.io/part-of: testenvs
+    testenv.onit.ai/name: nvidia-sim
+    testenv.onit.ai/state: {{ .Values.state }}
+spec:
+  components:
+    - name: Frontend
+      type: frontend
+      replicas: {{ include "graph.replicas" (dict "root" $ "n" .Values.frontend.replicas) }}
+      podTemplate:
+        spec:
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+            - name: main
+              image: {{ .Values.image }}
+              imagePullPolicy: {{ .Values.imagePullPolicy }}
+              resources:
+                {{- toYaml .Values.frontend.resources | nindent 16 }}
+    - name: decode
+      type: decode
+      replicas: {{ include "graph.replicas" (dict "root" $ "n" .Values.decode.replicas) }}
+      podTemplate:
+        spec:
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+            - name: main
+              image: {{ .Values.image }}
+              imagePullPolicy: {{ .Values.imagePullPolicy }}
+              workingDir: /workspace
+              command: [python3, -m, dynamo.mocker]
+              args:
+                - --model-path
+                - {{ .Values.model | quote }}
+                - --model-name
+                - {{ .Values.model | quote }}
+                - --speedup-ratio
+                - {{ .Values.decode.speedupRatio | quote }}
+                {{- range .Values.decode.extraArgs }}
+                - {{ . | quote }}
+                {{- end }}
+              {{- with .Values.hfTokenSecret }}
+              envFrom:
+                - secretRef:
+                    name: {{ . }}
+              {{- end }}
+              {{- $res := deepCopy .Values.decode.resources }}
+              {{- if gt (int .Values.decode.gpus) 0 }}
+              {{- $limits := merge (dict "nvidia.com/gpu" (toString .Values.decode.gpus)) ($res.limits | default dict) }}
+              {{- $_ := set $res "limits" $limits }}
+              {{- end }}
+              resources:
+                {{- toYaml $res | nindent 16 }}

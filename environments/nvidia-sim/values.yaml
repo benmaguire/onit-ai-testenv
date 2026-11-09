@@ -1,0 +1,122 @@
+# Set by the ApplicationSet from env.yaml; defaults let `helm template` work locally.
+state: up            # up | down
+global:
+  envName: nvidia-sim
+  project: testenvs
+  repoURL: https://github.com/benmaguire/onit-ai-testenv.git
+  targetRevision: main
+  argocdNamespace: argocd
+  destinationServer: https://kubernetes.default.svc
+
+# Each component is a child Argo CD Application. Set enabled: false to remove a
+# component (and free what it uses) while leaving the rest of the env in place.
+# syncWave orders them on install (needs argocd/argocd-cm-application-health.yaml).
+components:
+
+  # --- Mokka: mock NVML / nvidia-smi / CDI on a CPU-only node ----------------
+  # https://github.com/NVIDIA/k8s-test-infra
+  mokka:
+    enabled: true
+    syncWave: 0
+    namespace: nvidia-sim-mokka
+    repoURL: ghcr.io/nvidia/k8s-test-infra/chart
+    chart: nvml-mock
+    version: 0.6.0
+    values:
+      gpu:
+        # a100 | h100 | b200 | gb200 | gb300 | l40s | t4
+        # h100 avoids the IMEX download the multi-node NVLink profiles do.
+        profile: h100
+      # k3s embeds containerd (not on the host PATH), so Mokka cannot configure
+      # it and would skip it anyway. scripts/k3s-host-prep.sh does that job once.
+      nodeAgent:
+        containerRuntime:
+          enabled: false
+      featureGates:
+        IMEXDownload: false
+      nri:
+        # Gives the worker container the node's GPU profile instead of the
+        # default A100 identity. Needs NRI on in k3s containerd (host prep).
+        enabled: true
+        # Keep NRI away from GPU Operator pods (validator mount pile-up).
+        excludedNamespaces:
+          - nvidia-sim-gpu-operator
+
+  # --- NVIDIA GPU Operator (device plugin, GFD, dcgm-exporter, validator) ----
+  # Overlay from Mokka's GPU Operator guide. Stay on v26.3.x: v26.7.x gates
+  # operands on /proc/modules, which Mokka cannot serve.
+  gpuOperator:
+    enabled: true
+    syncWave: 1
+    namespace: nvidia-sim-gpu-operator
+    repoURL: https://helm.ngc.nvidia.com/nvidia
+    chart: gpu-operator
+    version: v26.3.3
+    values:
+      operator:
+        # Argo CD applies the chart's CRDs itself; skip the Helm-hook CRD job.
+        upgradeCRD: false
+      driver:
+        enabled: false        # Mokka is the driver
+      toolkit:
+        enabled: false        # host prep installs the toolkit for k3s
+      dcgm:
+        enabled: false        # dcgm-exporter embeds the host engine
+      dcgmExporter:
+        enabled: true
+        env:
+          - name: DCGM_EXPORTER_COLLECT_INTERVAL
+            value: "5000"
+      mig:
+        strategy: none
+      migManager:
+        enabled: false
+      nodeStatusExporter:
+        enabled: false
+      cdi:
+        enabled: true         # resolves GPUs from Mokka's /var/run/cdi/nvidia.yaml
+        default: true
+      devicePlugin:
+        enabled: true
+        config:
+          name: ""
+      gfd:
+        enabled: true
+        env:
+          - name: GFD_MACHINE_TYPE_FILE
+            value: /etc/nvml-mock/machine-type
+      validator:
+        driver:
+          env:
+            - name: DISABLE_DEV_CHAR_SYMLINK_CREATION
+              value: "true"
+        toolkit:
+          env:
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: all
+        cuda:
+          env:
+            - name: WITH_WORKLOAD   # no CUDA under Mokka
+              value: "false"
+
+  # --- NVIDIA Dynamo platform (operator only) --------------------------------
+  # etcd, NATS, Grove and KAI are off by default and not needed for an
+  # aggregated mocker graph. The operator installs its CRDs at startup.
+  dynamoPlatform:
+    enabled: true
+    syncWave: 2
+    namespace: nvidia-sim-dynamo-system
+    repoURL: https://helm.ngc.nvidia.com/nvidia/ai-dynamo
+    chart: dynamo-platform
+    version: 1.6.1
+    values: {}
+
+  # --- Dynamo mocker inference graph (chart in ./graph) ----------------------
+  # https://docs.nvidia.com/dynamo/knowledge-base/concepts/simulation/kubernetes-mocker
+  graph:
+    enabled: true
+    syncWave: 3
+    namespace: nvidia-sim
+    path: environments/nvidia-sim/graph
+    # Overrides for graph/values.yaml. state: down forces replicas to 0.
+    values: {}

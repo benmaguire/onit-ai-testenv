@@ -1,0 +1,7 @@
+apiVersion: v2
+name: testenv-nvidia-sim
+description: >-
+  App-of-apps for the nvidia-sim test environment: Mokka mock GPUs, NVIDIA GPU
+  Operator, NVIDIA Dynamo platform and a Dynamo mocker DynamoGraphDeployment.
+type: application
+version: 0.1.0

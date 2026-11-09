@@ -1,0 +1,69 @@
+# One Argo CD Application per test environment.
+#
+# The git files generator reads environments/*/env.yaml. Only files with
+#   enabled: "true"
+# produce an Application. Flipping enabled to "false" (and pushing) makes the
+# ApplicationSet delete the Application, and the resources finalizer cascades
+# the delete to everything the environment deployed.
+#
+# state ("up" | "down") is passed to the environment's chart as a Helm value.
+# "down" scales the environment's workloads to zero but keeps it installed.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: testenvs
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/benmaguire/onit-ai-testenv.git
+        revision: main
+        files:
+          - path: environments/*/env.yaml
+      selector:
+        matchLabels:
+          enabled: "true"
+  template:
+    metadata:
+      name: "testenv-{{ .name }}"
+      labels:
+        app.kubernetes.io/part-of: testenvs
+        testenv.onit.ai/name: "{{ .name }}"
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: testenvs
+      source:
+        repoURL: https://github.com/benmaguire/onit-ai-testenv.git
+        targetRevision: "{{ .targetRevision }}"
+        path: "{{ .path.path }}"
+        helm:
+          releaseName: "{{ .name }}"
+          valuesObject:
+            state: "{{ .state }}"
+            global:
+              envName: "{{ .name }}"
+              project: testenvs
+              repoURL: https://github.com/benmaguire/onit-ai-testenv.git
+              targetRevision: "{{ .targetRevision }}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{ .namespace }}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - ServerSideApply=true
+        retry:
+          limit: 10
+          backoff:
+            duration: 15s
+            factor: 2
+            maxDuration: 5m
+  syncPolicy:
+    # Allow the ApplicationSet to delete Applications whose env was disabled.
+    applicationsSync: sync
+    preserveResourcesOnDeletion: false

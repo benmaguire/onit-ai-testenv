@@ -1,0 +1,9 @@
+{{- $c := .Values.components.dynamoPlatform -}}
+{{- if $c.enabled }}
+{{- $source := dict "repoURL" $c.repoURL "chart" $c.chart "targetRevision" $c.version "helm" (dict "releaseName" "dynamo-platform" "valuesObject" $c.values) }}
+{{- /* The operator injects caBundle into its webhooks at runtime. */}}
+{{- $ignore := list
+      (dict "group" "admissionregistration.k8s.io" "kind" "ValidatingWebhookConfiguration" "jqPathExpressions" (list ".webhooks[]?.clientConfig.caBundle"))
+      (dict "group" "admissionregistration.k8s.io" "kind" "MutatingWebhookConfiguration" "jqPathExpressions" (list ".webhooks[]?.clientConfig.caBundle")) }}
+{{ include "nvsim.app" (dict "root" $ "key" "dynamo-platform" "c" $c "source" $source "ignoreDifferences" $ignore "syncOptions" (list "RespectIgnoreDifferences=true")) }}
+{{- end }}

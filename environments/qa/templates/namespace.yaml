@@ -1,0 +1,11 @@
+# The namespace is a managed resource (not CreateNamespace=true) so that
+# disabling the environment deletes it as well.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespace }}
+  labels:
+    {{- include "testenv.labels" . | nindent 4 }}
+    testenv.onit.ai/state: {{ .Values.state }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"

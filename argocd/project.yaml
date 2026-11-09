@@ -1,0 +1,26 @@
+# AppProject that scopes everything deployed from this repo.
+# Test environments install operators (CRDs, ClusterRoles, webhooks), so
+# cluster-scoped resources are allowed. Tighten this if the cluster is shared.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: testenvs
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: Ephemeral test environments managed from onit-ai-testenv
+  sourceRepos:
+    - https://github.com/benmaguire/onit-ai-testenv.git
+    - ghcr.io/nvidia/k8s-test-infra/chart        # Mokka (nvml-mock), OCI
+    - https://helm.ngc.nvidia.com/nvidia           # GPU Operator
+    - https://helm.ngc.nvidia.com/nvidia/ai-dynamo # Dynamo platform
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: "*"
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
