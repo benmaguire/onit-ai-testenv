@@ -15,6 +15,9 @@ spec:
     - ghcr.io/nvidia/k8s-test-infra/chart        # Mokka (nvml-mock), OCI
     - https://helm.ngc.nvidia.com/nvidia           # GPU Operator
     - https://helm.ngc.nvidia.com/nvidia/ai-dynamo # Dynamo platform
+    - https://kwok.sigs.k8s.io/charts/             # KWOK (runai-sim)
+    - ghcr.io/run-ai/fake-gpu-operator             # Run:ai fake-gpu-operator, OCI (runai-sim)
+    - ghcr.io/kai-scheduler/kai-scheduler          # KAI Scheduler, OCI (runai-sim)
   destinations:
     - server: https://kubernetes.default.svc
       namespace: "*"

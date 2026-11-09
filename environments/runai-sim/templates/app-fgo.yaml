@@ -1,0 +1,10 @@
+{{- $c := .Values.components.fakeGpuOperator -}}
+{{- if $c.enabled }}
+{{- /*
+skipCrds: the chart ships nvidia.com ClusterPolicy (the GPU Operator's CRD,
+also owned by nvidia-sim) and resource.nvidia.com ComputeDomain; neither is
+needed for fake pools without the Run:ai control plane, and two Argo CD apps
+must not own the same CRD.
+*/}}
+{{ include "runaisim.app" (dict "root" $ "key" "fake-gpu-operator" "c" $c "source" (include "runaisim.helmSource" (dict "c" $c "release" "fake-gpu-operator" "skipCrds" true) | fromYaml)) }}
+{{- end }}

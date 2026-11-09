@@ -1,0 +1,5 @@
+apiVersion: v2
+name: runai-sim-nodes
+description: KWOK virtual nodes, one set per fake-gpu-operator pool
+type: application
+version: 0.1.0

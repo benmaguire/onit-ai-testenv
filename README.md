@@ -9,6 +9,7 @@ documentation, specs, and a small `env.yaml` of lifecycle switches.
 |---|---|---|
 | `qa` | A guarded namespace for QA workloads (placeholder for now) | [environments/qa](environments/qa/README.md) |
 | `nvidia-sim` | Simulated NVIDIA GPU node ([Mokka](https://github.com/NVIDIA/k8s-test-infra)) + GPU Operator + [NVIDIA Dynamo](https://docs.nvidia.com/dynamo/) serving a mocker inference graph — no real GPUs | [environments/nvidia-sim](environments/nvidia-sim/README.md) |
+| `runai-sim` | Run:ai-style GPU scheduling on non-GPU hardware: KAI Scheduler (open-source Run:ai scheduler) + Run:ai fake-gpu-operator on KWOK virtual GPU nodes (40 simulated GPUs). Starts disabled | [environments/runai-sim](environments/runai-sim/README.md) |
 
 Target cluster: a **single-node k3s** cluster with Argo CD installed.
 

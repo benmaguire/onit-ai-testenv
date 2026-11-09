@@ -1,0 +1,7 @@
+{{- $c := .Values.components.workloads -}}
+{{- if $c.enabled }}
+{{- $vals := merge (dict "state" .Values.state "envName" .Values.global.envName) (deepCopy $c.values) }}
+{{- $source := dict "repoURL" .Values.global.repoURL "path" $c.path "targetRevision" .Values.global.targetRevision "helm" (dict "releaseName" "workloads" "valuesObject" $vals) }}
+{{- /* Queue CRD comes from KAI. */}}
+{{ include "runaisim.app" (dict "root" $ "key" "workloads" "c" $c "source" $source "syncOptions" (list "SkipDryRunOnMissingResource=true")) }}
+{{- end }}

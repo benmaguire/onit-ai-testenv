@@ -23,6 +23,16 @@ components:
     chart: nvml-mock
     version: 0.6.0
     values:
+      # Keep the mock driver off KWOK virtual nodes (runai-sim): their pods
+      # only look Running, and the simulator would target them.
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: type
+                    operator: NotIn
+                    values: [kwok]
       gpu:
         # a100 | h100 | b200 | gb200 | gb300 | l40s | t4
         # h100 avoids the IMEX download the multi-node NVLink profiles do.
@@ -114,6 +124,14 @@ components:
     chart: dynamo-platform
     version: 1.6.1
     values: {}
+    # Optional: schedule the graph with KAI Scheduler (the open-source Run:ai
+    # scheduler) from the runai-sim environment, which must be enabled on the
+    # same cluster. The operator then sets schedulerName: kai-scheduler and a
+    # queue on graph pods. Replace "values: {}" above with:
+    #   values:
+    #     global:
+    #       kai-scheduler:
+    #         enabled: true
 
   # --- Dynamo mocker inference graph (chart in ./graph) ----------------------
   # https://docs.nvidia.com/dynamo/knowledge-base/concepts/simulation/kubernetes-mocker

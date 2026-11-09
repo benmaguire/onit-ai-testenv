@@ -1,0 +1,36 @@
+{{- range $pool, $p := .Values.pools }}
+{{- range $i := until (int $p.count) }}
+{{- $name := printf "%s-%s-%d" $.Values.namePrefix $pool $i }}
+---
+apiVersion: v1
+kind: Node
+metadata:
+  name: {{ $name }}
+  annotations:
+    # KWOK manages (heartbeats) nodes with this annotation. The kwok-node-down
+    # simulation flips it to stop the heartbeat.
+    kwok.x-k8s.io/node: fake
+    node.alpha.kubernetes.io/ttl: "0"
+  labels:
+    type: kwok
+    kubernetes.io/hostname: {{ $name }}
+    kubernetes.io/os: linux
+    kubernetes.io/arch: amd64
+    kubernetes.io/role: agent
+    node-role.kubernetes.io/agent: ""
+    # fake-gpu-operator assigns GPUs by this pool label.
+    run.ai/simulated-gpu-node-pool: {{ $pool }}
+    app.kubernetes.io/part-of: testenvs
+    testenv.onit.ai/name: {{ $.Values.envName }}
+    {{- with $p.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- if $.Values.taint }}
+  taints:
+    - key: kwok.x-k8s.io/node
+      value: fake
+      effect: NoSchedule
+  {{- end }}
+{{- end }}
+{{- end }}

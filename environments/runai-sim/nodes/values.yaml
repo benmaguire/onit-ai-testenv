@@ -1,0 +1,15 @@
+# Set by the parent chart.
+state: up
+envName: runai-sim
+
+# Name prefix: <prefix>-<pool>-<index>
+namePrefix: runai-sim
+# Taint keeps everything that does not tolerate it off the virtual nodes
+# (pods there are only simulated by KWOK and never really run).
+taint: true
+# pool -> {count, labels}. Pool names must exist in fake-gpu-operator's
+# topology.nodePools. Overridden by components.nodes.values in ../values.yaml.
+pools:
+  h100:
+    count: 2
+    labels: {}

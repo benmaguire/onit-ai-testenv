@@ -1,0 +1,8 @@
+apiVersion: v2
+name: testenv-runai-sim
+description: >-
+  App-of-apps for the runai-sim test environment: KWOK virtual nodes with
+  simulated GPUs (Run:ai fake-gpu-operator) scheduled by KAI Scheduler, the
+  open-source Run:ai scheduler.
+type: application
+version: 0.1.0
