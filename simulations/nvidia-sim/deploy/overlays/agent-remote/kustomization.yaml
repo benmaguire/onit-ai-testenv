@@ -1,0 +1,53 @@
+# Agent on a remote cluster that a hub manages. It exposes its API on a
+# NodePort and self-registers with the hub (heartbeat every minute).
+# Edit the cluster name, hub URL and advertise URL, and create the
+# "simulator-hub-registration" Secret (key: token) — see README.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+patches:
+  - target:
+      kind: Deployment
+      name: testenv-simulator
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/1/value
+        value: lab-2                                # this cluster's name in the hub
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --hub-url=https://sim-hub.example.internal:30843
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --advertise-url=https://lab-2.example.internal:30843
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --hub-registration-token-file=/etc/simulator/hub/token
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --tls-cert-file=/etc/simulator/tls/tls.crt
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --tls-key-file=/etc/simulator/tls/tls.key
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value: {name: hub-registration, mountPath: /etc/simulator/hub, readOnly: true}
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value: {name: tls, mountPath: /etc/simulator/tls, readOnly: true}
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value: {name: hub-registration, secret: {secretName: simulator-hub-registration}}
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value: {name: tls, secret: {secretName: simulator-tls}}
+  - target:
+      kind: Service
+      name: testenv-simulator
+    patch: |-
+      - op: add
+        path: /spec/type
+        value: NodePort
+      - op: add
+        path: /spec/ports/0/nodePort
+        value: 30843

@@ -1,0 +1,123 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.2
+  name: simulationclusters.sim.testenv.onit.ai
+spec:
+  group: sim.testenv.onit.ai
+  names:
+    categories:
+    - testenv
+    kind: SimulationCluster
+    listKind: SimulationClusterList
+    plural: simulationclusters
+    shortNames:
+    - simcluster
+    - simclusters
+    singular: simulationcluster
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.endpoint
+      name: Endpoint
+      type: string
+    - jsonPath: .spec.environment
+      name: Env
+      type: string
+    - jsonPath: .status.reachable
+      name: Reachable
+      type: boolean
+    - jsonPath: .status.activeSimulations
+      name: Active
+      type: integer
+    - jsonPath: .status.lastSeenTime
+      name: Last-Seen
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: SimulationCluster registers a remote simulation agent with a
+          hub.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: SimulationClusterSpec describes how the hub reaches a remote
+              agent.
+            properties:
+              caBundle:
+                description: CABundle (PEM) to verify the agent's TLS certificate.
+                type: string
+              description:
+                type: string
+              endpoint:
+                description: Endpoint is the agent's API base URL, e.g. https://sim-agent.lab-2.example:8443.
+                pattern: ^https?://
+                type: string
+              environment:
+                description: Environment the remote cluster runs, e.g. nvidia-sim.
+                type: string
+              insecureSkipTLSVerify:
+                description: InsecureSkipTLSVerify disables TLS verification (test
+                  labs only).
+                type: boolean
+              tokenSecretRef:
+                description: TokenSecretRef holds the bearer token the hub sends to
+                  the agent.
+                properties:
+                  key:
+                    default: token
+                    type: string
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+            required:
+            - endpoint
+            type: object
+          status:
+            description: SimulationClusterStatus is the hub's view of the agent.
+            properties:
+              activeSimulations:
+                description: ActiveSimulations on the agent at the last probe.
+                format: int32
+                type: integer
+              agentVersion:
+                type: string
+              lastProbeTime:
+                format: date-time
+                type: string
+              lastSeenTime:
+                format: date-time
+                type: string
+              message:
+                type: string
+              reachable:
+                type: boolean
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

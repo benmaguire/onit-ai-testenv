@@ -1,0 +1,16 @@
+# Register a remote agent with a hub statically (instead of agent
+# self-registration). The token Secret holds the agent's API token.
+apiVersion: sim.testenv.onit.ai/v1alpha1
+kind: SimulationCluster
+metadata:
+  name: lab-2
+spec:
+  endpoint: https://lab-2.example.internal:30843
+  environment: nvidia-sim
+  tokenSecretRef:
+    namespace: sim-system
+    name: simcluster-lab-2
+    key: token
+  # caBundle: |
+  #   -----BEGIN CERTIFICATE-----
+  insecureSkipTLSVerify: false

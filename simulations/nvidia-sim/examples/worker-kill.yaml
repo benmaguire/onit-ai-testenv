@@ -1,0 +1,11 @@
+# Abruptly kill one decode worker; Recovered once the operator has a
+# replacement Ready. timeToRecover in status.data is the recovery time.
+apiVersion: sim.testenv.onit.ai/v1alpha1
+kind: Simulation
+metadata:
+  name: worker-kill
+  namespace: sim-system
+spec:
+  type: dynamo-worker-kill
+  target:
+    count: 1

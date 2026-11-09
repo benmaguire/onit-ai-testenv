@@ -1,0 +1,12 @@
+# Held until recovered by hand: simctl recover overheat-held
+apiVersion: sim.testenv.onit.ai/v1alpha1
+kind: Simulation
+metadata:
+  name: overheat-held
+  namespace: sim-system
+spec:
+  type: gpu-overheat
+  target:
+    gpu: "0"
+  params:
+    temperature: "97"

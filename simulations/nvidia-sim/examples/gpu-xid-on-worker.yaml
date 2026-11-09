@@ -1,0 +1,20 @@
+# Fail the GPU the Dynamo decode worker holds with Xid 79 for 2 minutes,
+# then revert and verify. kubectl apply -f this, or POST its spec to the API.
+apiVersion: sim.testenv.onit.ai/v1alpha1
+kind: Simulation
+metadata:
+  generateName: gpu-xid-worker-
+  namespace: sim-system
+  labels:
+    testrun: example
+spec:
+  type: gpu-fallen-off-bus
+  target:
+    graph: mocker-agg
+    component: decode
+    namespace: nvidia-sim
+  params:
+    xid: "79"
+  duration: 2m
+  recoveryTimeout: 5m
+  ttlAfterFinished: 1h

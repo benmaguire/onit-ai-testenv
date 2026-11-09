@@ -1,0 +1,50 @@
+# Central hub: manages simulations on its own cluster ("central") and on
+# every registered remote agent. API on NodePort 30843 with TLS.
+# Create Secrets simulator-api-token, simulator-registration-token and
+# simulator-tls (kubernetes.io/tls) first — see README.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+patches:
+  - target:
+      kind: Deployment
+      name: testenv-simulator
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/args/0
+        value: --mode=hub
+      - op: replace
+        path: /spec/template/spec/containers/0/env/1/value
+        value: central
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --registration-token-file=/etc/simulator/registration/token
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --tls-cert-file=/etc/simulator/tls/tls.crt
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --tls-key-file=/etc/simulator/tls/tls.key
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value: {name: registration-token, mountPath: /etc/simulator/registration, readOnly: true}
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value: {name: tls, mountPath: /etc/simulator/tls, readOnly: true}
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value: {name: registration-token, secret: {secretName: simulator-registration-token}}
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value: {name: tls, secret: {secretName: simulator-tls}}
+  - target:
+      kind: Service
+      name: testenv-simulator
+    patch: |-
+      - op: add
+        path: /spec/type
+        value: NodePort
+      - op: add
+        path: /spec/ports/0/nodePort
+        value: 30843

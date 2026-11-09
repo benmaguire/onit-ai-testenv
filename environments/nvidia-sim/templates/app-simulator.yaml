@@ -1,0 +1,5 @@
+{{- $c := .Values.components.simulator -}}
+{{- if $c.enabled }}
+{{- $source := dict "repoURL" .Values.global.repoURL "path" $c.path "targetRevision" .Values.global.targetRevision }}
+{{ include "nvsim.app" (dict "root" $ "key" "simulator" "c" $c "source" $source) }}
+{{- end }}

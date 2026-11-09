@@ -20,6 +20,7 @@ alerting — **not** performance. Responses are random tokens by design.
 | 1 | **NVIDIA GPU Operator**: device plugin, GFD, dcgm-exporter, validator (driver/toolkit off) | `nvidia/gpu-operator` `v26.3.3` | `nvidia-sim-gpu-operator` | `nvidia-sim-gpu-operator` |
 | 2 | **NVIDIA Dynamo platform**: operator only (no etcd/NATS/Grove/KAI) | `ai-dynamo/dynamo-platform` `1.6.1` | `nvidia-sim-dynamo-system` | `nvidia-sim-dynamo-platform` |
 | 3 | **Mocker graph**: `DynamoGraphDeployment` `mocker-agg` — Frontend + `decode` worker running `python3 -m dynamo.mocker` (`Qwen/Qwen3-0.6B`), worker requests 1 mock GPU | [graph/](graph/) | `nvidia-sim` | `nvidia-sim-graph` |
+| 4 | **Simulation controller** (optional, `components.simulator`, off by default): inject GPU/Dynamo/Kubernetes faults during tests | [simulations/nvidia-sim](../../simulations/nvidia-sim/README.md) | `sim-system` | `nvidia-sim-simulator` |
 
 ```mermaid
 flowchart LR
@@ -103,6 +104,15 @@ labels (cleaned by NFD's post-delete job), the toolkit installed by host prep,
 and Mokka's host directories (`/var/lib/nvml-mock`; Mokka reverts its CDI spec
 when its pod stops). Undo host prep's containerd change with
 `k3s-host-prep.sh --undo`.
+
+## Failure and recovery simulations
+
+[simulations/nvidia-sim](../../simulations/nvidia-sim/README.md) has 23
+simulation types for this environment ([catalog](../../simulations/nvidia-sim/CATALOG.md)):
+GPU Xid, lost GPU, ECC, overheating, throttling, memory pressure, NVLink and
+fabric faults through Mokka; Dynamo worker/frontend kills and partitions;
+pod/network/node faults. Enable `components.simulator` (after publishing the
+image and creating its token Secret) to run them through Argo CD.
 
 ## Configuration
 

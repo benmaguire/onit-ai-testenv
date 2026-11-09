@@ -34,6 +34,10 @@ components:
           enabled: false
       featureGates:
         IMEXDownload: false
+      # Set true to also write injected Xids to the node kernel log
+      # (/dev/kmsg), for log-based health monitors. Runs node-agent privileged.
+      # nodeAgent.kernelLog.enabled is merged with the block above:
+      #   nodeAgent: {containerRuntime: {enabled: false}, kernelLog: {enabled: true}}
       nri:
         # Gives the worker container the node's GPU profile instead of the
         # default A100 identity. Needs NRI on in k3s containerd (host prep).
@@ -120,3 +124,15 @@ components:
     path: environments/nvidia-sim/graph
     # Overrides for graph/values.yaml. state: down forces replicas to 0.
     values: {}
+
+  # --- Failure/recovery simulation controller (simulations/nvidia-sim) ------
+  # Simulation CRD + HTTP API for injecting GPU, Dynamo and Kubernetes faults
+  # during tests. Off until the image is published (see
+  # simulations/nvidia-sim/README.md) and the API token Secret exists.
+  simulator:
+    enabled: false
+    syncWave: 4
+    namespace: sim-system
+    # deploy/overlays/agent (this cluster only), agent-remote (managed by a
+    # hub elsewhere) or hub (central controller for many clusters)
+    path: simulations/nvidia-sim/deploy/overlays/agent
