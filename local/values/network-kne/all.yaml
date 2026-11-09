@@ -1,0 +1,6 @@
+# Locally built kne runner image (make up builds and loads it).
+components:
+  topology:
+    values:
+      runner:
+        image: docker.io/testenv/kne-runner:local

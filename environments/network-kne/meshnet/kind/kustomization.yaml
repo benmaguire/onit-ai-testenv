@@ -1,0 +1,5 @@
+# meshnet for clusters with standard CNI paths (/etc/cni/net.d, /opt/cni/bin), e.g. kind.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../base

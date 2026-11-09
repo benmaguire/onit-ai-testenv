@@ -35,7 +35,7 @@ want fs.inotify.max_user_watches 524288
 if [ -f "$SYSCTL.new" ]; then mv "$SYSCTL.new" "$SYSCTL"; sysctl --system >/dev/null; log "wrote $SYSCTL"; fi
 
 for d in /var/lib/rancher/k3s/data/cni /var/lib/rancher/k3s/agent/etc/cni/net.d; do
-  if [ -d "$d" ]; then log "$d present"; else warn "$d missing: k3s older than the October 2024 releases? meshnet's paths in meshnet/kustomization.yaml must match containerd's CNI bin_dir/conf_dir (grep -A3 'cni' /var/lib/rancher/k3s/agent/etc/containerd/config.toml)"; fi
+  if [ -d "$d" ]; then log "$d present"; else warn "$d missing: k3s older than the October 2024 releases? meshnet's paths in meshnet/k3s/kustomization.yaml must match containerd's CNI bin_dir/conf_dir (grep -A3 'cni' /var/lib/rancher/k3s/agent/etc/containerd/config.toml)"; fi
 done
 grep -E 'bin_dirs?|conf_dir' /var/lib/rancher/k3s/agent/etc/containerd/config.toml 2>/dev/null | sed 's/^/    containerd: /' || true
 

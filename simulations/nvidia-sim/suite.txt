@@ -1,0 +1,10 @@
+# Simulation suite for `make sim-suite ENV=nvidia-sim` (scripts/local/testenv.sh).
+# One simulation per line:  name | type | simctl inject arguments
+# Each runs to completion (--wait observed) before the next; reports and CSVs
+# go to reports/<env>/<run>/. Short windows for local runs. ONLY=<regex> runs a subset.
+worker-kill      | dynamo-worker-kill | --count 1 --baseline 1m --after 1m --observe dynamo --observe kubernetes --probe-http models=http://mocker-agg-frontend.nvidia-sim.svc:8000/v1/models
+gpu-lost-worker  | gpu-lost           | --target-namespace nvidia-sim --graph mocker-agg --component decode --duration 1m --baseline 1m --after 1m --observe gpu --observe kubernetes --probe-http models=http://mocker-agg-frontend.nvidia-sim.svc:8000/v1/models
+gpu-xid-79       | gpu-xid            | --gpu 0 --param xid=79 --param mode=fallen_off_bus --duration 1m --baseline 30s --after 30s --observe gpu
+gpu-overheat     | gpu-overheat       | --gpu 0 --param temperature=97 --duration 1m --baseline 30s --after 30s --observe gpu
+worker-latency   | net-latency        | --target-namespace nvidia-sim --pod-selector nvidia.com/dynamo-component-type=decode --param delay=150ms --duration 1m --baseline 1m --after 1m --observe dynamo
+frontend-cpu     | cpu-stress         | --target-namespace nvidia-sim --pod-selector nvidia.com/dynamo-component-type=frontend --param workers=2 --duration 1m --baseline 1m --after 1m --observe kubernetes --probe-http models=http://mocker-agg-frontend.nvidia-sim.svc:8000/v1/models

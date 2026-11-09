@@ -1,5 +1,7 @@
 # kne CLI + kubectl, for creating/deleting KNE topologies from inside the cluster.
 #   docker build -t ghcr.io/benmaguire/onit-ai-testenv/kne-runner:v0.3.4 environments/network-kne/runner
+# Declared for builders without BuildKit (scripts/local passes it); BuildKit sets it itself.
+ARG BUILDPLATFORM
 FROM --platform=$BUILDPLATFORM golang:1.26 AS build
 ARG KNE_VERSION=v0.3.4 TARGETOS TARGETARCH
 RUN git clone --depth 1 --branch ${KNE_VERSION} https://github.com/openconfig/kne /src && cd /src && \

@@ -22,6 +22,9 @@ on one controller.
 | `qa` | the generic faults once QA has workloads | [qa/](qa/README.md) |
 | `observability` | none: it is what measures the others | [../environments/observability](../environments/observability/README.md) |
 
+Locally: `make simulator`, then `make sim-suite ENV=<env>` runs that
+environment's `suite.txt` and saves reports (see [docs/local.md](../docs/local.md)).
+
 ## How it works
 
 ```mermaid

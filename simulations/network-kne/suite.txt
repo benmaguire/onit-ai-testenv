@@ -1,0 +1,9 @@
+# Simulation suite for `make sim-suite ENV=network-kne` (scripts/local/testenv.sh).
+# One simulation per line:  name | type | simctl inject arguments
+# Each runs to completion (--wait observed) before the next; reports and CSVs
+# go to reports/<env>/<run>/. Short windows for local runs. ONLY=<regex> runs a subset.
+core-link-down   | link-down       | --target-namespace xrd-lab --pod-selector app=r1 --param interface=eth1 --duration 1m --baseline 1m --after 2m --observe network --probe-interval 1s --probe-exec 'xrd-lab/app=host1:ping -c1 -W1 192.168.2.10'
+core-link-flap   | link-flap       | --target-namespace xrd-lab --pod-selector app=r1 --param interface=eth1 --param downSeconds=5 --param upSeconds=25 --duration 3m --baseline 1m --after 2m --observe network --probe-interval 1s --probe-exec 'xrd-lab/app=host1:ping -c1 -W1 192.168.2.10'
+core-latency     | net-latency     | --target-namespace xrd-lab --pod-selector app=r1 --param interface=eth1 --param delay=80ms --param jitter=10ms --duration 2m --baseline 1m --after 1m --observe network --probe-interval 1s --probe-exec 'xrd-lab/app=host1:ping -c1 -W1 192.168.2.10'
+core-loss        | net-packet-loss | --target-namespace xrd-lab --pod-selector app=r1 --param interface=eth1 --param loss=10 --duration 2m --baseline 1m --after 1m --observe network --probe-interval 1s --probe-exec 'xrd-lab/app=host1:ping -c1 -W1 192.168.2.10'
+r1-crash         | container-kill  | --target-namespace xrd-lab --pod-selector app=r1 --recovery-timeout 15m --baseline 1m --after 3m --observe network --observe kubernetes --probe-interval 2s --probe-exec 'xrd-lab/app=host1:ping -c1 -W1 192.168.2.10'

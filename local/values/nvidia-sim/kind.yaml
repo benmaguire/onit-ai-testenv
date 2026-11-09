@@ -1,0 +1,8 @@
+# kind nodes run containerd under systemd, so Mokka's node daemon can set up
+# the NVIDIA runtime, CDI and NRI itself (as in Mokka's own guides). No host prep.
+components:
+  mokka:
+    values:
+      nodeAgent:
+        containerRuntime:
+          enabled: true

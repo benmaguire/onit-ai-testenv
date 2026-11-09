@@ -16,7 +16,7 @@ plus gNMI streaming telemetry into Prometheus.
 
 | Order | Component | Source | Namespace | Argo CD Application |
 |---|---|---|---|---|
-| 0 | **meshnet** CNI: creates the point-to-point links between KNE pods (gRPC wire mode) | vendored from KNE v0.3.4, k3s CNI paths patched ([meshnet/](meshnet/)) | `meshnet` | `network-kne-meshnet` |
+| 0 | **meshnet** CNI: creates the point-to-point links between KNE pods (gRPC wire mode) | vendored from KNE v0.3.4 ([meshnet/base](meshnet/base/)), overlays for k3s CNI paths ([meshnet/k3s](meshnet/k3s/)) and standard paths ([meshnet/kind](meshnet/kind/)) | `meshnet` | `network-kne-meshnet` |
 | 1 | **Topology** ([topology/](topology/)): ConfigMap with the KNE topology and router configs. A Job runs `kne create` on every sync (`kne delete` when down), and a PostDelete Job removes the topology namespace | `kne-runner` image ([runner/](runner/)) | `network-kne` (runner), `xrd-lab` (routers + hosts, created by KNE) | `network-kne-topology` |
 | 2 | **Telemetry** ([telemetry/](telemetry/)): gnmic subscribes to interface counters / oper-status and BGP neighbor state on both routers, exports Prometheus metrics (`gnmic_*`) | `ghcr.io/openconfig/gnmic:0.49.1` | `network-kne` | `network-kne-telemetry` |
 
@@ -43,7 +43,7 @@ including port 22.
    `max_user_watches=524288`) and checks k3s's CNI directories. `--check` only
    reports.
 3. **k3s from October 2024 or later** (CNI binaries in `/var/lib/rancher/k3s/data/cni`).
-   On older k3s, change the meshnet hostPaths in [meshnet/kustomization.yaml](meshnet/kustomization.yaml).
+   On older k3s, change the meshnet hostPaths in [meshnet/k3s/kustomization.yaml](meshnet/k3s/kustomization.yaml).
 4. **x86_64 node** with ~2 CPU / 2 GiB per XRd (KNE's defaults) plus the hosts:
    about 5 CPU / 5 GiB free.
 5. **The `kne-runner` image**: published by `.github/workflows/kne-runner.yaml`

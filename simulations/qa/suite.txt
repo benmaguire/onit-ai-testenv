@@ -1,0 +1,6 @@
+# Simulation suite for `make sim-suite ENV=qa` (scripts/local/testenv.sh).
+# One simulation per line:  name | type | simctl inject arguments
+# Each runs to completion (--wait observed) before the next; reports and CSVs
+# go to reports/<env>/<run>/. Short windows for local runs. ONLY=<regex> runs a subset.
+# qa has no workloads yet. Add lines like:
+# api-latency | net-latency | --target-namespace qa --pod-selector app=api --param delay=200ms --duration 2m --baseline 1m --after 1m --observe kubernetes

@@ -1,0 +1,17 @@
+# meshnet for k3s: k3s keeps CNI config and plugins in its own directories
+# (releases since October 2024), and meshnet's install step must write there.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../base
+patches:
+  - target:
+      kind: DaemonSet
+      name: meshnet
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/volumes/0/hostPath/path
+        value: /var/lib/rancher/k3s/data/cni
+      - op: replace
+        path: /spec/template/spec/volumes/1/hostPath/path
+        value: /var/lib/rancher/k3s/agent/etc/cni/net.d

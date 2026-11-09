@@ -1,5 +1,5 @@
 # Vendored from https://github.com/openconfig/kne/blob/v0.3.4/manifests/meshnet/grpc/manifest.yaml
-# (Apache-2.0). k3s path changes are kustomize patches in kustomization.yaml, not edits here.
+# (Apache-2.0). changes are kustomize patches (base/, k3s/, kind/), not edits here.
 apiVersion: v1
 kind: Namespace
 metadata:

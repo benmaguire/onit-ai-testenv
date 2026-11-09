@@ -9,12 +9,12 @@ global:
 
 components:
   # meshnet CNI: wires pod-to-pod links between KNE nodes (vendored KNE v0.3.4,
-  # patched for k3s paths; see meshnet/kustomization.yaml).
+  # meshnet/k3s overlay for k3s CNI paths; meshnet/kind for standard paths).
   meshnet:
     enabled: true
     syncWave: 0
     namespace: meshnet
-    path: environments/network-kne/meshnet
+    path: environments/network-kne/meshnet/k3s
 
   # The topology (topology/files/topology.pb.txt), created by `kne create`
   # in a Job on each sync and removed by `kne delete` (state down / env removal).

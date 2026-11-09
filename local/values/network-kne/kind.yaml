@@ -1,0 +1,4 @@
+# kind nodes use the standard CNI paths: meshnet without the k3s patches.
+components:
+  meshnet:
+    path: environments/network-kne/meshnet/kind

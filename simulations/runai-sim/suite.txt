@@ -1,0 +1,8 @@
+# Simulation suite for `make sim-suite ENV=runai-sim` (scripts/local/testenv.sh).
+# One simulation per line:  name | type | simctl inject arguments
+# Each runs to completion (--wait observed) before the next; reports and CSVs
+# go to reports/<env>/<run>/. Short windows for local runs. ONLY=<regex> runs a subset.
+node-down        | kwok-node-down      | --node-selector run.ai/simulated-gpu-node-pool=h100 --count 1 --duration 2m --baseline 1m --after 2m --observe kai --target-namespace runai-sim
+idle-gpus        | fgo-gpu-utilization | --target-namespace runai-sim --pod-selector app=train-whole-gpu --param range=0 --duration 2m --baseline 1m --after 1m --observe gpu
+cordon-a100      | node-cordon         | --node-selector run.ai/simulated-gpu-node-pool=a100 --duration 2m --baseline 1m --after 1m --observe kai --target-namespace runai-sim
+kill-inference   | pod-kill            | --target-namespace runai-sim --pod-selector app=inference --count 1 --baseline 1m --after 1m --observe kai
