@@ -45,7 +45,10 @@ simulations/
   <env>/README.md               what can be simulated in that env
   controller/                   Go controller (agent/hub), simctl, CRDs, catalog, observability
   faults/                       generic network/service/resource faults
+local/values/<env>/<cluster>.yaml  overrides for local kind / k3d / k3s clusters
+Makefile                        local clusters: up / down / simulations (make help)
 scripts/
+  local/                        Makefile backend: preflight, clusters, rendering, simulations
   envctl.sh                     list / up / down / remove / status / sync / purge
 docs/
   architecture.md               how the pieces fit together
@@ -53,7 +56,19 @@ docs/
   adding-an-environment.md      template for new environments
 ```
 
-## Quick start
+## Local (Mac)
+
+```bash
+make up ENV=nvidia-triton-cpu        # finds or creates a local kind/k3d/k3s cluster, checks it, deploys from the working tree
+make simulator && make sim-suite ENV=nvidia-triton-cpu
+make down ENV=nvidia-triton-cpu
+```
+
+`make help` lists everything, and [docs/local.md](docs/local.md) explains the
+preflight checks, cluster types and simulation runs. [docs/testing.md](docs/testing.md)
+records what has actually been run and what hasn't.
+
+## Quick start (Argo CD)
 
 ```bash
 # 1. once per cluster: register the project, repos and ApplicationSet

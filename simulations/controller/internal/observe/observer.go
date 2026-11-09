@@ -228,9 +228,19 @@ func (o *Observer) Finalize(ctx context.Context, sim *simv1.Simulation) *simv1.O
 	obs.Probes = nil
 	if o.Probes != nil {
 		samples := o.Probes.Samples(sim.Namespace, sim.Name)
+		// Every configured probe is reported, even one with no samples yet.
+		seen := map[string]bool{}
 		var names []string
+		if ob := sim.Spec.Observe; ob != nil {
+			for _, p := range ob.Probes {
+				seen[p.Name] = true
+				names = append(names, p.Name)
+			}
+		}
 		for n := range samples {
-			names = append(names, n)
+			if !seen[n] {
+				names = append(names, n)
+			}
 		}
 		sort.Strings(names)
 		for _, n := range names {

@@ -63,6 +63,19 @@ type Injector interface {
 	Verify(ctx context.Context, env *Env, sim *simv1.Simulation) (done bool, msg string, err error)
 }
 
+// OneShot is implemented by injectors whose fault is a single event (a kill)
+// with nothing to hold: without spec.duration they recover straight away
+// instead of staying Active until recovery is requested.
+type OneShot interface {
+	OneShot() bool
+}
+
+// IsOneShot reports whether an injector is a single-event fault.
+func IsOneShot(i Injector) bool {
+	o, ok := i.(OneShot)
+	return ok && o.OneShot()
+}
+
 // Registry maps simulation types to injectors.
 type Registry struct{ m map[string]Injector }
 

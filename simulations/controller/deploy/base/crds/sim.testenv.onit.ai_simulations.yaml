@@ -32,7 +32,7 @@ spec:
     - jsonPath: .status.recoverAt
       name: Recover-At
       priority: 1
-      type: date
+      type: string
     - jsonPath: .status.message
       name: Message
       priority: 1

@@ -1,5 +1,7 @@
 # Builds the simulator controller and the simctl CLI.
 #   docker build -t ghcr.io/benmaguire/onit-ai-testenv/simulator:dev simulations/controller
+# Declared for builders without BuildKit (scripts/local passes it); BuildKit sets it itself.
+ARG BUILDPLATFORM
 FROM --platform=$BUILDPLATFORM golang:1.24 AS build
 ARG TARGETOS TARGETARCH VERSION=dev
 WORKDIR /src

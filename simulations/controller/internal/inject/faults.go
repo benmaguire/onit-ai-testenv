@@ -76,6 +76,9 @@ type podFault struct {
 
 func (f *podFault) Entry() catalog.Entry { return f.entry }
 
+// OneShot: container-kill is a single event.
+func (f *podFault) OneShot() bool { return f.verifyRestart }
+
 func (f *podFault) Validate(sim *simv1.Simulation) error {
 	if err := checkKnownParams(f.entry, sim); err != nil {
 		return err
@@ -747,14 +750,14 @@ func FaultInjectors() []Injector {
 		&podFault{
 			entry: catalog.Entry{
 				Type: "container-kill", Category: "fault", Summary: "Crash the main container (restart in place)",
-				Effect:   "Sends a signal to PID 1 of the pod's first container, which then restarts under its restartPolicy (restartCount increases); the pod, its IP and volumes stay. Unlike pod-kill this also works for bare pods such as KNE routers.",
+				Effect:   "Sends a signal to PID 1 of the pod's first container so it exits and restarts under its restartPolicy (restartCount increases); the pod, its IP and volumes stay. Unlike pod-kill this also works for bare pods such as KNE routers. The signal is sent from inside the container's PID namespace, where the kernel only delivers signals PID 1 handles: SIGKILL is always ignored there, so use a signal the app handles (most servers exit on TERM or INT). For an abrupt kill use pod-kill.",
 				Recovery: "Nothing to revert; recovered when the pods are Ready again.",
 				Targets:  faultTargets,
-				Params:   []catalog.Param{{Name: "signal", Description: "KILL or TERM.", Default: "KILL"}},
+				Params:   []catalog.Param{{Name: "signal", Description: "TERM, INT, QUIT or HUP (must be one the app handles; KILL cannot reach PID 1 from inside the pod).", Default: "TERM"}},
 				Requires: []string{"ephemeral containers with process-namespace targeting (containerd 1.6+)"},
 			},
 			kind: kindOneShot, targetContainer: true, verifyRestart: true,
-			validate: func(p params) error { return oneOf("signal", p.str("signal"), "KILL", "TERM") },
+			validate: func(p params) error { return oneOf("signal", p.str("signal"), "TERM", "INT", "QUIT", "HUP") },
 			script: func(_ *simv1.Simulation, p params, _ []string) string {
 				return "kill -" + p.str("signal") + " 1"
 			},

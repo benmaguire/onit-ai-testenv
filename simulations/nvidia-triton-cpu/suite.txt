@@ -1,0 +1,10 @@
+# Simulation suite for `make sim-suite ENV=nvidia-triton-cpu` (scripts/local/testenv.sh).
+# One simulation per line:  name | type | simctl inject arguments
+# Each runs to completion (--wait observed) before the next; reports and CSVs
+# go to reports/<env>/<run>/. Short windows for local runs. ONLY=<regex> runs a subset.
+latency          | net-latency     | --target-namespace nvidia-triton-cpu --pod-selector app.kubernetes.io/name=triton-inference-server --param delay=100ms --param jitter=20ms --duration 2m --baseline 1m --after 1m --observe triton --observe kubernetes --probe-http ready=http://triton.nvidia-triton-cpu.svc:8000/v2/health/ready
+packet-loss      | net-packet-loss | --target-namespace nvidia-triton-cpu --pod-selector app.kubernetes.io/name=triton-inference-server --param loss=5 --duration 2m --baseline 1m --after 1m --observe triton --probe-http ready=http://triton.nvidia-triton-cpu.svc:8000/v2/health/ready
+cpu-contention   | cpu-stress      | --target-namespace nvidia-triton-cpu --pod-selector app.kubernetes.io/name=triton-inference-server --param workers=2 --duration 3m --baseline 1m --after 2m --observe triton --observe kubernetes --probe-http ready=http://triton.nvidia-triton-cpu.svc:8000/v2/health/ready
+service-outage   | service-outage  | --target-namespace nvidia-triton-cpu --param service=triton --duration 1m --baseline 1m --after 1m --observe triton --probe-http ready=http://triton.nvidia-triton-cpu.svc:8000/v2/health/ready
+replica-loss     | pod-kill        | --target-namespace nvidia-triton-cpu --pod-selector app.kubernetes.io/name=triton-inference-server --count 1 --baseline 1m --after 2m --observe triton --observe kubernetes --probe-http ready=http://triton.nvidia-triton-cpu.svc:8000/v2/health/ready
+crash-restart    | container-kill  | --target-namespace nvidia-triton-cpu --pod-selector app.kubernetes.io/name=triton-inference-server --count 1 --baseline 1m --after 2m --observe triton --observe kubernetes --probe-http ready=http://triton.nvidia-triton-cpu.svc:8000/v2/health/ready

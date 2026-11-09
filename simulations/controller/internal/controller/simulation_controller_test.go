@@ -203,3 +203,26 @@ func TestInvalidObserveFails(t *testing.T) {
 		t.Fatalf("phase=%s msg=%s", got.Status.Phase, got.Status.Message)
 	}
 }
+
+func TestOneShotWithoutDurationRecoversImmediately(t *testing.T) {
+	worker := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: "w-0", Namespace: "app", Labels: map[string]string{"app": "w"}},
+		Status:     corev1.PodStatus{Phase: corev1.PodRunning},
+	}
+	r, c, _, _ := setup(t, newSim(simv1.SimulationSpec{Type: "pod-kill", Target: simv1.Target{Namespace: "app", PodSelector: map[string]string{"app": "w"}}}))
+	if err := c.Create(context.Background(), worker); err != nil {
+		t.Fatal(err)
+	}
+	got, res := reconcile(t, r, c)
+	if got.Status.Phase != simv1.PhaseActive || got.Status.RecoverAt == nil || !res.Requeue {
+		t.Fatalf("phase=%s recoverAt=%v res=%+v; want Active, due now, requeued", got.Status.Phase, got.Status.RecoverAt, res)
+	}
+	if got, _ = reconcile(t, r, c); got.Status.Phase != simv1.PhaseRecovering {
+		t.Fatalf("phase=%s, want Recovering without a duration", got.Status.Phase)
+	}
+	// A non-one-shot fault without duration is held.
+	r2, c2, _, _ := setup(t, newSim(simv1.SimulationSpec{Type: "gpu-overheat", Target: simv1.Target{Node: "node1"}}))
+	if got, _ := reconcile(t, r2, c2); got.Status.RecoverAt != nil {
+		t.Fatalf("held fault got recoverAt %v", got.Status.RecoverAt)
+	}
+}

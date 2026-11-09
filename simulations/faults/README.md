@@ -20,7 +20,7 @@ those pods, and is reverted and verified at the end.
 | Service outage | `service-outage` | `service` | A Service stops answering everyone (its pods stay Ready) |
 | CPU pressure | `cpu-stress` | `workers`, `load` | Throttling and latency under a noisy neighbour in the pod |
 | Memory pressure | `memory-stress` | `size` | Page-cache pressure, then OOM kills at the pod limit |
-| Crash | `container-kill` | `signal` | Restart in place: readiness, warm-up, in-flight requests |
+| Crash | `container-kill` | `signal` (TERM, INT, QUIT, HUP: one the app handles) | Restart in place: readiness, warm-up, in-flight requests. For an abrupt kill use `pod-kill` (SIGKILL cannot reach PID 1 from inside the pod) |
 | Pod loss | `pod-kill` | `gracePeriodSeconds`, `count` | Rescheduling, PDBs, leader election |
 | Partition | `network-isolate` | `direction` | The pod is cut off (ingress, egress or both) |
 
