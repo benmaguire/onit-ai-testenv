@@ -1,0 +1,6 @@
+state: up
+hardware: simulated
+envName: nvidia-nvsentinel
+namespace: nvidia-nvsentinel-workload
+image: nicolaka/netshoot:v0.16
+replicas: 1

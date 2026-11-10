@@ -22,8 +22,14 @@ render_parent() {
   local env=$1 state=$2 out=$3 ns args=()
   ns=$(env_ns "$env")
   while IFS= read -r a; do [ -n "$a" ] && args+=("$a"); done < <(local_values "$env")
+  if [ -n "${FRONTEND:-}" ]; then args+=(--set "frontend=$FRONTEND"); fi
+  # Published images instead of the locally built ones (images.sh skips the build).
+  case "$env" in
+    dc-ot-sim) [ -n "${OTSIM_IMAGE:-}" ] && args+=(--set "image=$OTSIM_IMAGE") ;;
+    network-kne) [ -n "${KNE_RUNNER_IMAGE:-}" ] && args+=(--set "components.topology.values.runner.image=$KNE_RUNNER_IMAGE") ;;
+  esac
   helm template "$env" "$ROOT/environments/$env" -n "$ns" \
-    --set "state=$state" --set "global.envName=$env" --set "global.project=testenvs" \
+    --set "state=$state" --set "hardware=$(env_hardware "$env")" --set "global.envName=$env" --set "global.project=testenvs" \
     --set "global.repoURL=local" --set "global.targetRevision=local" \
     ${args[@]+"${args[@]}"} > "$out" || die "helm template environments/$env failed"
 }
@@ -122,7 +128,8 @@ env_up() {
       ( env_up "$d" )
     fi
   done
-  log "Deploying ${B}$env${N} (state=$state, cluster=$KIND_OF, from the working tree)"
+  env_meta "$env"
+  log "Deploying ${B}$env${N} (state=$state, hardware=$(env_hardware "$env"), cluster=$KIND_OF, from the working tree)"
   local_images "$env"
   w=$(work_dir); ns=$(env_ns "$env"); parent="$w/$env.parent.yaml"; apps="$w/$env.apps.json"
   render_parent "$env" "$state" "$parent"

@@ -17,7 +17,7 @@ spec:
         spec:
           containers:
             - name: main
-              image: {{ .Values.image }}
+              image: {{ if eq (.Values.hardware | default "simulated") "real" }}{{ .Values.real.image }}{{ else }}{{ .Values.image }}{{ end }}
               env:
                 - name: DYN_ROUTER_MODE
                   value: {{ .Values.frontend.routerMode | quote }}

@@ -37,8 +37,8 @@ or `AUTO_INSTALL=no` (fail with instructions).
 
 | `CLUSTER=` | Runs | Created with | Good for |
 |---|---|---|---|
-| `kind` | Kubernetes in a Docker container (systemd + containerd inside) | `kind create cluster` | **nvidia-sim**, **nvidia-dynamo-disagg** (Mokka configures the node's containerd itself), **network-kne** (KNE's own default) |
-| `k3d` | k3s in a Docker container | `k3d cluster create` | qa, observability, runai-sim, nvidia-triton-cpu (fast, light) |
+| `kind` | Kubernetes in a Docker container (systemd + containerd inside) | `kind create cluster` | **nvidia-sim**, **nvidia-dynamo-disagg**, **nvidia-nvsentinel**, **nvidia-dra-sim** (Mokka configures the node's containerd itself), **network-kne** (KNE's own default) |
+| `k3d` | k3s in a Docker container | `k3d cluster create` | qa, observability, runai-sim, nvidia-triton-cpu, nvidia-vllm (inference-gateway), dc-ot-sim (fast, light) |
 | `k3s` | k3s in a Colima VM (`colima start -p <name> --kubernetes --runtime containerd`) | Colima | closest to the target single-node k3s, including the host-prep scripts |
 
 kind and k3d need a Docker daemon: Docker Desktop, OrbStack or Colima are
@@ -123,3 +123,14 @@ simulation have run end to end on k3d (Apple Silicon); the rest is still to be r
 | nvidia-triton-cpu | any; the Triton image is ~20 GB (Colima `DISK`, Docker Desktop disk limit) |
 | nvidia-sim, nvidia-dynamo-disagg | kind (Mokka configures containerd via systemd in the node), or k3s in Colima with host prep. Not k3d |
 | network-kne | x86_64 only (Intel Mac or an x86 VM). Import the Cisco XRd image into the node first (`kind load image-archive <xrd>.tgz --name testenv`). The inotify sysctls belong to the Docker VM |
+
+## Options per environment
+
+| Variable | Environments | Effect |
+|---|---|---|
+| `HARDWARE=real` | nvidia-* | Deploy onto real NVIDIA GPUs instead of mock ones: needs a GPU cluster context and `ALLOW_REMOTE=1`. See [real-hardware.md](real-hardware.md) |
+| `FRONTEND=inference-gateway\|dynamo` | nvidia-vllm | Envoy Gateway + InferencePool, or a Dynamo frontend (which pulls in nvidia-sim) |
+| `OTSIM_IMAGE=<image>` | dc-ot-sim | Use a published otsim image instead of building `environments/dc-ot-sim/otsim` locally |
+
+`make envs` shows each environment's hardware modes, dependencies and conflicts
+(e.g. nvidia-dra-sim can't share a cluster with nvidia-sim).

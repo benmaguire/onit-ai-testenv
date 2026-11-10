@@ -1,0 +1,11 @@
+name: ae
+description: United Arab Emirates / Gulf. 230/400 V 50 Hz, very hot desert climate.
+voltageLN: 230
+voltageLL: 400
+frequencyHz: 50
+units: {temperature: C, flow: lpm, pressure: kpa}
+climate: {designAmbientC: 46, diurnalSwingC: 10}
+cooling: {evaporative: false, waterLPerKWhRejected: 0}
+gridCarbonGPerKWh: 420
+standards: [DEWA / ADDC regulations, TIA-942, Uptime Institute Tier]
+reporting: [Local authority energy regulations]

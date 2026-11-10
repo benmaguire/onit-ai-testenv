@@ -41,6 +41,14 @@ var Builtin = Profiles{
 		{Name: "dynamo_itl_p95", Query: `histogram_quantile(0.95, sum by (le) (rate(dynamo_frontend_inter_token_latency_seconds_bucket[{{.Rate}}])))`, Unit: "s"},
 		{Name: "dynamo_inflight", Query: `sum(dynamo_frontend_inflight_requests)`, Unit: "requests"},
 	},
+	"vllm": {
+		{Name: "vllm_running", Query: `sum(vllm:num_requests_running{namespace="{{.Namespace}}"})`, Unit: "requests"},
+		{Name: "vllm_waiting", Query: `sum(vllm:num_requests_waiting{namespace="{{.Namespace}}"})`, Unit: "requests"},
+		{Name: "vllm_kv_cache_usage_max", Query: `max(vllm:kv_cache_usage_perc{namespace="{{.Namespace}}"})`, Unit: "ratio"},
+		{Name: "vllm_success_per_s", Query: `sum(rate(vllm:request_success_total{namespace="{{.Namespace}}"}[{{.Rate}}]))`, Unit: "req/s", HigherIsBetter: true},
+		{Name: "vllm_ttft_p95", Query: `histogram_quantile(0.95, sum by (le) (rate(vllm:time_to_first_token_seconds_bucket{namespace="{{.Namespace}}"}[{{.Rate}}])))`, Unit: "s"},
+		{Name: "vllm_itl_p95", Query: `histogram_quantile(0.95, sum by (le) (rate(vllm:inter_token_latency_seconds_bucket{namespace="{{.Namespace}}"}[{{.Rate}}])))`, Unit: "s"},
+	},
 	"triton": {
 		{Name: "triton_success_per_s", Query: `sum(rate(nv_inference_request_success[{{.Rate}}]))`, Unit: "req/s", HigherIsBetter: true},
 		{Name: "triton_failure_per_s", Query: `sum(rate(nv_inference_request_failure[{{.Rate}}]))`, Unit: "req/s"},
@@ -57,6 +65,17 @@ var Builtin = Profiles{
 		{Name: "router_out_pkts_per_s", Query: `sum(rate(gnmic_interfaces_interface_state_counters_out_pkts[{{.Rate}}]))`, Unit: "pkt/s"},
 		{Name: "router_in_errors_per_s", Query: `sum(rate(gnmic_interfaces_interface_state_counters_in_errors[{{.Rate}}]))`, Unit: "err/s"},
 		{Name: "router_bgp_established", Query: `count(gnmic_network_instances_network_instance_protocols_protocol_bgp_neighbors_neighbor_state_session_state{session_state="ESTABLISHED"}) or vector(0)`, Unit: "sessions", HigherIsBetter: true},
+	},
+	"ot": {
+		{Name: "ot_pue", Query: `max(otsim_site{kpi="pue"})`, Unit: "ratio"},
+		{Name: "ot_it_kw", Query: `max(otsim_site{kpi="it_kw"})`, Unit: "kW", HigherIsBetter: true},
+		{Name: "ot_facility_kw", Query: `max(otsim_site{kpi="facility_kw"})`, Unit: "kW"},
+		{Name: "ot_rack_inlet_c", Query: `max(otsim_site{kpi="rack_inlet_c"})`, Unit: "°C"},
+		{Name: "ot_cdu_return_max_c", Query: `max(otsim_site{kpi="cdu_return_max_c"})`, Unit: "°C"},
+		{Name: "ot_ups_charge_min_pct", Query: `min(otsim_point{type="ups",point="battery_charge_pct"})`, Unit: "%", HigherIsBetter: true},
+		{Name: "ot_alarms_critical", Query: `max(otsim_site{kpi="alarms_critical"})`, Unit: "alarms"},
+		{Name: "ot_water_l_per_h", Query: `max(otsim_site{kpi="water_l_per_h"})`, Unit: "L/h"},
+		{Name: "dcim_scrape_errors", Query: `sum(rate(internal_gather_errors{input=~"modbus|snmp|http"}[{{.Rate}}])) or vector(0)`, Unit: "err/s"},
 	},
 	"probes": {
 		{Name: "probe_success_ratio", Query: `sum(rate(sim_probe_total{simulation="{{.Simulation}}",result="success"}[{{.Rate}}])) / clamp_min(sum(rate(sim_probe_total{simulation="{{.Simulation}}"}[{{.Rate}}])), 1e-9)`, Unit: "ratio", HigherIsBetter: true},

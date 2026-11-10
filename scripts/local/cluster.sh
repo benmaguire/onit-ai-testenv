@@ -205,6 +205,10 @@ preflight() {
   api_ok || die "cluster '$CTX' still not reachable"
   ok "context $CTX ($SERVER)"
 
+  local hw
+  hw=$(env_hardware "$env")
+  case " $HW_MODES " in *" $hw "*) ;; *) die "$env has no '$hw' hardware mode (supports: $HW_MODES)" ;; esac
+  if [ "$hw" = real ]; then real_gpu_preflight "$env"; return 0; fi
   if ! server_is_local && [ "$ALLOW_REMOTE" != 1 ]; then
     die "context '$CTX' points at $SERVER, which does not look like a local cluster.
        This Makefile only targets local kind / k3d / k3s clusters. Switch context
@@ -223,9 +227,8 @@ preflight() {
   fi
   ok "cluster type $KIND_OF supported for $env"
 
-  local minor
-  minor=$(kubectl version -o yaml 2>/dev/null | yq '.serverVersion.minor' | tr -dc '0-9')
-  [ -n "$minor" ] && [ "$minor" -lt 28 ] && die "Kubernetes 1.$minor is too old (need >= 1.28)"
+  check_k8s_version "$env"
+  check_conflicts "$env"
   ok "Kubernetes $(kubectl version -o yaml 2>/dev/null | yq '.serverVersion.gitVersion')"
 
   local arches cpu mem nodes
@@ -288,4 +291,62 @@ node_container() {
     kind) echo "${CTX#kind-}-control-plane" ;;
     k3d) echo "k3d-${CTX#k3d-}-server-0" ;;
   esac
+}
+
+check_k8s_version() {
+  local minor
+  minor=$(kubectl version -o yaml 2>/dev/null | yq '.serverVersion.minor' | tr -dc '0-9')
+  if [ -n "$minor" ] && [ "$minor" -lt "$MIN_MINOR" ]; then
+    die "$1 needs Kubernetes >= 1.$MIN_MINOR, the cluster runs 1.$minor.
+       ${NOTE:+$NOTE
+       }kind: kind create cluster --image kindest/node:v1.34.x (or newer kind), k3d: --image rancher/k3s:v1.34.x-k3s1, Colima: --kubernetes-version v1.34.x+k3s1"
+  fi
+}
+
+check_conflicts() {
+  local c
+  for c in $CONFLICTS; do
+    if kubectl get ns -l "testenv.onit.ai/name=$c" -o name 2>/dev/null | grep -q .; then
+      die "$1 cannot run alongside $c, which is up in this cluster. $NOTE
+       Tear it down first: make down ENV=$c"
+    fi
+  done
+}
+
+# real_gpu_preflight <env>: hardware: real needs nodes with NVIDIA GPUs.
+real_gpu_preflight() {
+  local env=$1 gpus
+  log "Real NVIDIA hardware checks"
+  if server_is_local && is_mac; then
+    die "hardware=real deploys onto real NVIDIA GPUs, but '$CTX' is a local cluster on this Mac (no NVIDIA GPUs).
+       Point kubectl at your GPU cluster (e.g. the k3s node with GPUs), then:
+         make up ENV=$env HARDWARE=real ALLOW_REMOTE=1
+       or use the GitOps path: set hardware: real in environments/$env/env.yaml and push."
+  fi
+  if ! server_is_local && [ "$ALLOW_REMOTE" != 1 ]; then
+    die "context '$CTX' ($SERVER) is not local. For real hardware that is expected: confirm with ALLOW_REMOTE=1."
+  fi
+  check_k8s_version "$env"
+  check_conflicts "$env"
+  gpus=$(kubectl get nodes -o json | yq -p json -oy '[.items[] | select(
+            .metadata.labels["nvidia.com/gpu.present"] == "true" or
+            .metadata.labels["feature.node.kubernetes.io/pci-10de.present"] == "true" or
+            ((.status.allocatable["nvidia.com/gpu"] // "0") | tonumber) > 0) | .metadata.name] | join(" ")')
+  if [ -z "$gpus" ]; then
+    die "no node advertises an NVIDIA GPU (labels nvidia.com/gpu.present / feature.node.kubernetes.io/pci-10de.present, or allocatable nvidia.com/gpu).
+       Check the node has the NVIDIA driver (nvidia-smi on the host). If the GPU Operator is not installed yet,
+       label the GPU nodes so the deploy can proceed: kubectl label node <node> nvidia.com/gpu.present=true"
+  fi
+  ok "NVIDIA GPU nodes: $gpus"
+  if kubectl get pods -A -l app=nvidia-device-plugin-daemonset -o name 2>/dev/null | grep -q . && [ "$env" = nvidia-dra-sim ]; then
+    die "the NVIDIA device plugin is running; DRA must not run alongside it (nvidia-dra-sim disables it in its own GPU Operator). Remove the other GPU Operator first."
+  fi
+  local d
+  for d in $DEPS; do
+    if [ -n "${HARDWARE:-}" ] && [ "$(yq '.hardware // "simulated"' "$ROOT/environments/$d/env.yaml")" != real ]; then
+      warn "dependency $d is hardware: simulated in its env.yaml; HARDWARE=$HARDWARE deploys it with real hardware too"
+    fi
+  done
+  [ -n "$NOTE" ] && warn "$NOTE"
+  return 0
 }

@@ -1,0 +1,11 @@
+name: in
+description: India. 230/415 V 50 Hz, hot climate.
+voltageLN: 230
+voltageLL: 415
+frequencyHz: 50
+units: {temperature: C, flow: lpm, pressure: kpa}
+climate: {designAmbientC: 42, diurnalSwingC: 10}
+cooling: {evaporative: true, waterLPerKWhRejected: 1.8}
+gridCarbonGPerKWh: 700
+standards: [IS 732 (wiring), National Building Code, TIA-942]
+reporting: [BEE energy conservation reporting (designated consumers)]

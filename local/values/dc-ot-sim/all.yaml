@@ -1,0 +1,2 @@
+# Locally built otsim image (make up builds and loads it).
+image: docker.io/testenv/otsim:local

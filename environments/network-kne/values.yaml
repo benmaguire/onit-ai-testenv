@@ -1,4 +1,6 @@
 state: up
+# simulated | real (set by the ApplicationSet from env.yaml)
+hardware: simulated
 global:
   envName: network-kne
   project: testenvs

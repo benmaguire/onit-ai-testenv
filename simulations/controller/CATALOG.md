@@ -2,7 +2,7 @@
 
 # Simulation catalog
 
-Every simulation type the controller serves, for the nvidia-sim and runai-sim environments (also at `GET /api/v1/catalog` and `simctl catalog`). Each one injects a failure and has a defined recovery: what is reverted and what is checked before the Simulation reports `Recovered`.
+Every simulation type the controller serves, for the GPU, Dynamo, Run:ai, network and data centre OT environments (also at `GET /api/v1/catalog` and `simctl catalog`). Each one injects a failure and has a defined recovery: what is reverted and what is checked before the Simulation reports `Recovered`.
 
 | Type | Category | Summary |
 |---|---|---|
@@ -46,6 +46,24 @@ Every simulation type the controller serves, for the nvidia-sim and runai-sim en
 | [`link-flap`](#link-flap) | network | Flap a pod interface down/up repeatedly |
 | [`network-isolate`](#network-isolate) | network | Cut pods off the network with a NetworkPolicy |
 | [`observe-only`](#observe-only) | observe | Measure a window without injecting anything |
+| [`ot-cdu-leak`](#ot-cdu-leak) | ot | Coolant leak at a CDU (data centre OT) |
+| [`ot-cdu-pump-failure`](#ot-cdu-pump-failure) | ot | CDU pump failure (data centre OT) |
+| [`ot-chiller-trip`](#ot-chiller-trip) | ot | Chiller trips (data centre OT) |
+| [`ot-comms-loss`](#ot-comms-loss) | ot | Device stops answering (data centre OT) |
+| [`ot-crah-failure`](#ot-crah-failure) | ot | CRAH unit stops (data centre OT) |
+| [`ot-frequency-deviation`](#ot-frequency-deviation) | ot | Mains frequency deviation (data centre OT) |
+| [`ot-generator-fail-to-start`](#ot-generator-fail-to-start) | ot | Generator fails to start (data centre OT) |
+| [`ot-high-ambient`](#ot-high-ambient) | ot | Heatwave (data centre OT) |
+| [`ot-it-load-surge`](#ot-it-load-surge) | ot | IT load surge (data centre OT) |
+| [`ot-leak`](#ot-leak) | ot | Water detected by a leak sensor (data centre OT) |
+| [`ot-pdu-breaker-trip`](#ot-pdu-breaker-trip) | ot | Rack PDU breaker trips (data centre OT) |
+| [`ot-pdu-overload`](#ot-pdu-overload) | ot | Rack overload (data centre OT) |
+| [`ot-sensor-drift`](#ot-sensor-drift) | ot | Sensor drift (data centre OT) |
+| [`ot-sensor-stuck`](#ot-sensor-stuck) | ot | Sensor stuck (data centre OT) |
+| [`ot-ups-battery-degraded`](#ot-ups-battery-degraded) | ot | UPS battery capacity reduced (data centre OT) |
+| [`ot-ups-failure`](#ot-ups-failure) | ot | UPS output fails (data centre OT) |
+| [`ot-utility-outage`](#ot-utility-outage) | ot | Mains supply lost (data centre OT) |
+| [`ot-utility-sag`](#ot-utility-sag) | ot | Mains voltage sag (data centre OT) |
 | [`fgo-gpu-utilization`](#fgo-gpu-utilization) | runai | Change the GPU utilization fake-gpu-operator reports for pods |
 | [`kwok-node-down`](#kwok-node-down) | runai | A virtual GPU node fails (stops heartbeating) |
 
@@ -894,3 +912,375 @@ simctl inject kwok-node-down --node-selector run.ai/simulated-gpu-node-pool=h100
 ```
 
 References: <https://kwok.sigs.k8s.io/docs/user/kwok-manage-nodes-and-pods/>, <https://github.com/kai-scheduler/KAI-Scheduler>
+
+## Data centre OT (dc-ot-sim)
+
+For the [dc-ot-sim environment](../../environments/dc-ot-sim/README.md): faults injected into the OT plant simulator (otsim) through its admin API, observed over Modbus / SNMP / Redfish and in the `ot` metrics profile. `device` is an otsim device ID (`GET /api/v1/devices`). Standards and adaptation: [docs/ot-standards.md](../../docs/ot-standards.md).
+
+### ot-cdu-leak
+
+Coolant leak at a CDU (data centre OT).
+
+- **Effect:** Leak sensors alarm, the reservoir drains and a low level stops the pumps.
+- **Recovery:** The fault is removed from otsim; the plant model returns to normal. Recovered when the site has no more critical alarms than before injection.
+- **Targets:** `namespace`
+- **Requires:** dc-ot-sim environment (otsim)
+
+| Param | Default | Description |
+|---|---|---|
+| `device` | **required** | otsim device ID of a cdu device |
+| `litersPerMinute` | `5` | leak rate |
+| `otsimURL` | — | otsim admin API (default http://otsim.<target.namespace>.svc:8080) |
+
+```bash
+simctl inject ot-cdu-leak --param device=cdu-1 --observe ot --baseline 1m --after 2m --duration 2m --wait recovered
+```
+
+References: <https://www.dmtf.org/standards/redfish>, <https://modbus.org/specs.php>
+
+### ot-cdu-pump-failure
+
+CDU pump failure (data centre OT).
+
+- **Effect:** One pump: N+1 keeps flow, redundancy-lost alarm. pump=0: all pumps stop, no flow, return temperature climbs and alarms.
+- **Recovery:** The fault is removed from otsim; the plant model returns to normal. Recovered when the site has no more critical alarms than before injection.
+- **Targets:** `namespace`
+- **Requires:** dc-ot-sim environment (otsim)
+
+| Param | Default | Description |
+|---|---|---|
+| `device` | **required** | otsim device ID of a cdu device |
+| `pump` | `1` | pump number, 0 = all |
+| `otsimURL` | — | otsim admin API (default http://otsim.<target.namespace>.svc:8080) |
+
+```bash
+simctl inject ot-cdu-pump-failure --param device=cdu-1 --observe ot --baseline 1m --after 2m --duration 2m --wait recovered
+```
+
+References: <https://www.dmtf.org/standards/redfish>, <https://modbus.org/specs.php>
+
+### ot-chiller-trip
+
+Chiller trips (data centre OT).
+
+- **Effect:** Chilled/facility water warms; CDU and CRAH supply temperatures follow.
+- **Recovery:** The fault is removed from otsim; the plant model returns to normal. Recovered when the site has no more critical alarms than before injection.
+- **Targets:** `namespace`
+- **Requires:** dc-ot-sim environment (otsim)
+
+| Param | Default | Description |
+|---|---|---|
+| `device` | **required** | otsim device ID of a chiller device |
+| `otsimURL` | — | otsim admin API (default http://otsim.<target.namespace>.svc:8080) |
+
+```bash
+simctl inject ot-chiller-trip --param device=chiller-1 --observe ot --baseline 1m --after 2m --duration 2m --wait recovered
+```
+
+References: <https://www.dmtf.org/standards/redfish>, <https://modbus.org/specs.php>
+
+### ot-comms-loss
+
+Device stops answering (data centre OT).
+
+- **Effect:** The device stops responding on a protocol (timeouts for Modbus/SNMP, 503 for Redfish) while the plant keeps running: DCIM/BMS lose visibility.
+- **Recovery:** The fault is removed from otsim; the plant model returns to normal. Recovered when the site has no more critical alarms than before injection.
+- **Targets:** `namespace`
+- **Requires:** dc-ot-sim environment (otsim)
+
+| Param | Default | Description |
+|---|---|---|
+| `device` | **required** | otsim device ID (GET /api/v1/devices) |
+| `protocol` | `all` | modbus, snmp, redfish or all |
+| `otsimURL` | — | otsim admin API (default http://otsim.<target.namespace>.svc:8080) |
+
+```bash
+simctl inject ot-comms-loss --param device=ups-1 --observe ot --baseline 1m --after 2m --duration 2m --wait recovered
+```
+
+References: <https://www.dmtf.org/standards/redfish>, <https://modbus.org/specs.php>
+
+### ot-crah-failure
+
+CRAH unit stops (data centre OT).
+
+- **Effect:** Less air cooling capacity; rack inlet temperatures rise (ASHRAE alarms).
+- **Recovery:** The fault is removed from otsim; the plant model returns to normal. Recovered when the site has no more critical alarms than before injection.
+- **Targets:** `namespace`
+- **Requires:** dc-ot-sim environment (otsim)
+
+| Param | Default | Description |
+|---|---|---|
+| `device` | **required** | otsim device ID of a crah device |
+| `otsimURL` | — | otsim admin API (default http://otsim.<target.namespace>.svc:8080) |
+
+```bash
+simctl inject ot-crah-failure --param device=crah-1 --observe ot --baseline 1m --after 2m --duration 2m --wait recovered
+```
+
+References: <https://www.dmtf.org/standards/redfish>, <https://modbus.org/specs.php>
+
+### ot-frequency-deviation
+
+Mains frequency deviation (data centre OT).
+
+- **Effect:** Mains frequency moves off the region's nominal (50/60 Hz); beyond ±1 Hz the UPS treats the input as bad.
+- **Recovery:** The fault is removed from otsim; the plant model returns to normal. Recovered when the site has no more critical alarms than before injection.
+- **Targets:** `namespace`
+- **Requires:** dc-ot-sim environment (otsim)
+
+| Param | Default | Description |
+|---|---|---|
+| `deltaHz` | `-1.5` | offset from nominal in Hz |
+| `otsimURL` | — | otsim admin API (default http://otsim.<target.namespace>.svc:8080) |
+
+```bash
+simctl inject ot-frequency-deviation --observe ot --baseline 1m --after 2m --duration 2m --wait recovered
+```
+
+References: <https://www.dmtf.org/standards/redfish>, <https://modbus.org/specs.php>
+
+### ot-generator-fail-to-start
+
+Generator fails to start (data centre OT).
+
+- **Effect:** On a utility outage the generator alarms fail-to-start and the UPS runs until its battery is depleted. Combine with ot-utility-outage.
+- **Recovery:** The fault is removed from otsim; the plant model returns to normal. Recovered when the site has no more critical alarms than before injection.
+- **Targets:** `namespace`
+- **Requires:** dc-ot-sim environment (otsim)
+
+| Param | Default | Description |
+|---|---|---|
+| `device` | **required** | otsim device ID of a generator device |
+| `otsimURL` | — | otsim admin API (default http://otsim.<target.namespace>.svc:8080) |
+
+```bash
+simctl inject ot-generator-fail-to-start --param device=gen-1 --observe ot --baseline 1m --after 2m --duration 2m --wait recovered
+```
+
+References: <https://www.dmtf.org/standards/redfish>, <https://modbus.org/specs.php>
+
+### ot-high-ambient
+
+Heatwave (data centre OT).
+
+- **Effect:** Outdoor temperature rises and chiller efficiency falls; PUE and water use rise.
+- **Recovery:** The fault is removed from otsim; the plant model returns to normal. Recovered when the site has no more critical alarms than before injection.
+- **Targets:** `namespace`
+- **Requires:** dc-ot-sim environment (otsim)
+
+| Param | Default | Description |
+|---|---|---|
+| `deltaC` | `10` | added to the region's ambient °C |
+| `otsimURL` | — | otsim admin API (default http://otsim.<target.namespace>.svc:8080) |
+
+```bash
+simctl inject ot-high-ambient --observe ot --baseline 1m --after 2m --duration 2m --wait recovered
+```
+
+References: <https://www.dmtf.org/standards/redfish>, <https://modbus.org/specs.php>
+
+### ot-it-load-surge
+
+IT load surge (data centre OT).
+
+- **Effect:** IT load rises (e.g. a training job ramps); power and cooling follow.
+- **Recovery:** The fault is removed from otsim; the plant model returns to normal. Recovered when the site has no more critical alarms than before injection.
+- **Targets:** `namespace`
+- **Requires:** dc-ot-sim environment (otsim)
+
+| Param | Default | Description |
+|---|---|---|
+| `multiplier` | `1.3` | IT load multiplier |
+| `otsimURL` | — | otsim admin API (default http://otsim.<target.namespace>.svc:8080) |
+
+```bash
+simctl inject ot-it-load-surge --observe ot --baseline 1m --after 2m --duration 2m --wait recovered
+```
+
+References: <https://www.dmtf.org/standards/redfish>, <https://modbus.org/specs.php>
+
+### ot-leak
+
+Water detected by a leak sensor (data centre OT).
+
+- **Effect:** Leak alarm only (no plant effect): tests BMS alarm handling.
+- **Recovery:** The fault is removed from otsim; the plant model returns to normal. Recovered when the site has no more critical alarms than before injection.
+- **Targets:** `namespace`
+- **Requires:** dc-ot-sim environment (otsim)
+
+| Param | Default | Description |
+|---|---|---|
+| `device` | **required** | otsim device ID of a leak-sensor device |
+| `otsimURL` | — | otsim admin API (default http://otsim.<target.namespace>.svc:8080) |
+
+```bash
+simctl inject ot-leak --param device=leak-cdu-1 --observe ot --baseline 1m --after 2m --duration 2m --wait recovered
+```
+
+References: <https://www.dmtf.org/standards/redfish>, <https://modbus.org/specs.php>
+
+### ot-pdu-breaker-trip
+
+Rack PDU breaker trips (data centre OT).
+
+- **Effect:** The rack loses power; other racks are unaffected.
+- **Recovery:** The fault is removed from otsim; the plant model returns to normal. Recovered when the site has no more critical alarms than before injection.
+- **Targets:** `namespace`
+- **Requires:** dc-ot-sim environment (otsim)
+
+| Param | Default | Description |
+|---|---|---|
+| `device` | **required** | otsim device ID of a rack-pdu device |
+| `otsimURL` | — | otsim admin API (default http://otsim.<target.namespace>.svc:8080) |
+
+```bash
+simctl inject ot-pdu-breaker-trip --param device=pdu-r3 --observe ot --baseline 1m --after 2m --duration 2m --wait recovered
+```
+
+References: <https://www.dmtf.org/standards/redfish>, <https://modbus.org/specs.php>
+
+### ot-pdu-overload
+
+Rack overload (data centre OT).
+
+- **Effect:** Rack load rises; past the breaker rating the breaker trips.
+- **Recovery:** The fault is removed from otsim; the plant model returns to normal. Recovered when the site has no more critical alarms than before injection.
+- **Targets:** `namespace`
+- **Requires:** dc-ot-sim environment (otsim)
+
+| Param | Default | Description |
+|---|---|---|
+| `device` | **required** | otsim device ID of a rack-pdu device |
+| `multiplier` | `1.6` | load multiplier |
+| `otsimURL` | — | otsim admin API (default http://otsim.<target.namespace>.svc:8080) |
+
+```bash
+simctl inject ot-pdu-overload --param device=pdu-r3 --observe ot --baseline 1m --after 2m --duration 2m --wait recovered
+```
+
+References: <https://www.dmtf.org/standards/redfish>, <https://modbus.org/specs.php>
+
+### ot-sensor-drift
+
+Sensor drift (data centre OT).
+
+- **Effect:** A point drifts from the truth at a rate per simulated minute.
+- **Recovery:** The fault is removed from otsim; the plant model returns to normal. Recovered when the site has no more critical alarms than before injection.
+- **Targets:** `namespace`
+- **Requires:** dc-ot-sim environment (otsim)
+
+| Param | Default | Description |
+|---|---|---|
+| `device` | **required** | otsim device ID (GET /api/v1/devices) |
+| `point` | **required** | device point, e.g. supply_temp_c |
+| `ratePerMinute` | `0.5` | drift per minute |
+| `otsimURL` | — | otsim admin API (default http://otsim.<target.namespace>.svc:8080) |
+
+```bash
+simctl inject ot-sensor-drift --param device=cdu-1 --param point=supply_temp_c --observe ot --duration 2m --wait recovered
+```
+
+References: <https://www.dmtf.org/standards/redfish>, <https://modbus.org/specs.php>
+
+### ot-sensor-stuck
+
+Sensor stuck (data centre OT).
+
+- **Effect:** A point reports a frozen value on every protocol while the plant keeps changing: tests DCIM plausibility checks.
+- **Recovery:** The fault is removed from otsim; the plant model returns to normal. Recovered when the site has no more critical alarms than before injection.
+- **Targets:** `namespace`
+- **Requires:** dc-ot-sim environment (otsim)
+
+| Param | Default | Description |
+|---|---|---|
+| `device` | **required** | otsim device ID (GET /api/v1/devices) |
+| `point` | **required** | device point, e.g. supply_temp_c |
+| `value` | — | value reported (default: the current value) |
+| `otsimURL` | — | otsim admin API (default http://otsim.<target.namespace>.svc:8080) |
+
+```bash
+simctl inject ot-sensor-stuck --param device=cdu-1 --param point=supply_temp_c --observe ot --duration 2m --wait recovered
+```
+
+References: <https://www.dmtf.org/standards/redfish>, <https://modbus.org/specs.php>
+
+### ot-ups-battery-degraded
+
+UPS battery capacity reduced (data centre OT).
+
+- **Effect:** Shorter runtime on battery (ageing strings).
+- **Recovery:** The fault is removed from otsim; the plant model returns to normal. Recovered when the site has no more critical alarms than before injection.
+- **Targets:** `namespace`
+- **Requires:** dc-ot-sim environment (otsim)
+
+| Param | Default | Description |
+|---|---|---|
+| `device` | **required** | otsim device ID of a ups device |
+| `capacityPct` | `30` | remaining capacity % |
+| `otsimURL` | — | otsim admin API (default http://otsim.<target.namespace>.svc:8080) |
+
+```bash
+simctl inject ot-ups-battery-degraded --param device=ups-1 --observe ot --baseline 1m --after 2m --duration 2m --wait recovered
+```
+
+References: <https://www.dmtf.org/standards/redfish>, <https://modbus.org/specs.php>
+
+### ot-ups-failure
+
+UPS output fails (data centre OT).
+
+- **Effect:** The racks the UPS feeds lose power; IT load drops.
+- **Recovery:** The fault is removed from otsim; the plant model returns to normal. Recovered when the site has no more critical alarms than before injection.
+- **Targets:** `namespace`
+- **Requires:** dc-ot-sim environment (otsim)
+
+| Param | Default | Description |
+|---|---|---|
+| `device` | **required** | otsim device ID of a ups device |
+| `otsimURL` | — | otsim admin API (default http://otsim.<target.namespace>.svc:8080) |
+
+```bash
+simctl inject ot-ups-failure --param device=ups-1 --observe ot --baseline 1m --after 2m --duration 2m --wait recovered
+```
+
+References: <https://www.dmtf.org/standards/redfish>, <https://modbus.org/specs.php>
+
+### ot-utility-outage
+
+Mains supply lost (data centre OT).
+
+- **Effect:** The UPS goes on battery, the generator starts after its start delay and the ATS transfers to it; IT load stays up while the chain works.
+- **Recovery:** Mains restored; the ATS retransfers after its delay and the generator cools down and stops. Recovered when the site has no more critical alarms than before injection.
+- **Targets:** `namespace`
+- **Requires:** dc-ot-sim environment (otsim)
+
+| Param | Default | Description |
+|---|---|---|
+| `otsimURL` | — | otsim admin API (default http://otsim.<target.namespace>.svc:8080) |
+
+```bash
+simctl inject ot-utility-outage --observe ot --baseline 1m --after 2m --duration 2m --wait recovered
+```
+
+References: <https://www.dmtf.org/standards/redfish>, <https://modbus.org/specs.php>
+
+### ot-utility-sag
+
+Mains voltage sag (data centre OT).
+
+- **Effect:** Supply voltage drops below tolerance; the UPS rides through on battery.
+- **Recovery:** The fault is removed from otsim; the plant model returns to normal. Recovered when the site has no more critical alarms than before injection.
+- **Targets:** `namespace`
+- **Requires:** dc-ot-sim environment (otsim)
+
+| Param | Default | Description |
+|---|---|---|
+| `voltagePct` | `80` | supply voltage as % of nominal |
+| `otsimURL` | — | otsim admin API (default http://otsim.<target.namespace>.svc:8080) |
+
+```bash
+simctl inject ot-utility-sag --observe ot --baseline 1m --after 2m --duration 2m --wait recovered
+```
+
+References: <https://www.dmtf.org/standards/redfish>, <https://modbus.org/specs.php>

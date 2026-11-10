@@ -1,0 +1,5 @@
+apiVersion: v2
+name: testenv-inference-gateway
+description: Envoy Gateway GatewayClass/Gateway and an HTTPRoute to the vLLM InferencePool
+type: application
+version: 0.1.0

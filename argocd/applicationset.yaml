@@ -6,7 +6,8 @@
 # ApplicationSet delete the Application, and the resources finalizer cascades
 # the delete to everything the environment deployed.
 #
-# state ("up" | "down") is passed to the environment's chart as a Helm value.
+# state ("up" | "down") and hardware ("simulated" | "real") are passed to the
+# environment's chart as Helm values.
 # "down" scales the environment's workloads to zero but keeps it installed.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
@@ -43,6 +44,7 @@ spec:
           releaseName: "{{ .name }}"
           valuesObject:
             state: "{{ .state }}"
+            hardware: "{{ .hardware }}"
             global:
               envName: "{{ .name }}"
               project: testenvs

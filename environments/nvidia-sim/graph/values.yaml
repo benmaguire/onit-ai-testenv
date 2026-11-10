@@ -1,6 +1,13 @@
 # up | down — down forces every component to 0 replicas. Set by the parent chart.
 state: up
 
+# Set by the parent chart from env.yaml.
+hardware: simulated
+
+# mocker: Dynamo's simulated engine (no GPU needed).
+# vllm:   a real vLLM worker on a real NVIDIA GPU (hardware: real).
+engine: mocker
+
 name: mocker-agg
 
 # No dedicated mocker image: dynamo-planner ships dynamo.mocker.
@@ -39,3 +46,14 @@ decode:
       memory: 512Mi
     limits:
       memory: 2Gi
+
+# Real engine (engine: vllm). The frontend keeps using the planner image.
+vllm:
+  image: nvcr.io/nvidia/ai-dynamo/vllm-runtime:1.6.1
+  extraArgs: []
+  resources:
+    requests:
+      cpu: "2"
+      memory: 8Gi
+    limits:
+      memory: 24Gi

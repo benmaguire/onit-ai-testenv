@@ -1,0 +1,7 @@
+# Simulation suite for `make sim-suite ENV=nvidia-dra-sim` (scripts/local/testenv.sh).
+# One simulation per line:  name | type | simctl inject arguments
+# GPU faults target the GPUs that DRA allocated to the selected pods.
+claimer-gpu-xid      | gpu-xid            | --target-namespace nvidia-dra-sim --pod-selector app=gpu-claimer --param xid=79 --param mode=fallen_off_bus --duration 1m --baseline 30s --after 1m --observe gpu --observe kubernetes
+shared-gpu-overheat  | gpu-overheat       | --target-namespace nvidia-dra-sim --pod-selector app=gpu-sharer --param temperature=95 --duration 1m --baseline 30s --after 30s --observe gpu
+claimer-kill         | pod-kill           | --target-namespace nvidia-dra-sim --pod-selector app=gpu-claimer --count 1 --baseline 30s --after 1m --observe kubernetes
+dra-plugin-kill      | pod-kill           | --target-namespace nvidia-dra --pod-selector dra-driver-nvidia-gpu-component=kubelet-plugin --count 1 --baseline 30s --after 1m --observe kubernetes

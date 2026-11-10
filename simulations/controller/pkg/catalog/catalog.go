@@ -14,7 +14,7 @@ type Param struct {
 type Entry struct {
 	// Type is the value for spec.type.
 	Type string `json:"type"`
-	// Category groups entries: gpu, dynamo, kubernetes, network.
+	// Category groups entries: gpu, dynamo, kubernetes, network, ot, ...
 	Category string `json:"category"`
 	// Summary is a one-line description.
 	Summary string `json:"summary"`

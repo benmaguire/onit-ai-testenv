@@ -1,0 +1,177 @@
+state: up
+# simulated | real (set by the ApplicationSet from env.yaml)
+hardware: simulated
+
+# How requests reach vLLM:
+#   inference-gateway  Envoy Gateway + Agent Router (formerly Envoy AI Gateway)
+#                      routing an HTTPRoute to an InferencePool; the llm-d
+#                      Endpoint Picker (EPP) chooses the vLLM pod per request
+#                      from its queue depth, KV-cache use and prefix cache.
+#                      Simulated: llm-d vLLM simulator pods (no GPU, any arch).
+#                      Real: vllm/vllm-openai on NVIDIA GPUs.
+#   dynamo             A Dynamo frontend (OpenAI API + KV-aware router) in front
+#                      of Dynamo vLLM workers (DynamoGraphDeployment).
+#                      Simulated: Dynamo mocker workers. Real: dynamo.vllm.
+#                      Needs nvidia-sim for the Dynamo platform (operator).
+# Locally: make up ENV=nvidia-vllm FRONTEND=dynamo
+frontend: inference-gateway
+
+global:
+  envName: nvidia-vllm
+  project: testenvs
+  repoURL: https://github.com/benmaguire/onit-ai-testenv.git
+  targetRevision: main
+  argocdNamespace: argocd
+  destinationServer: https://kubernetes.default.svc
+
+# Each component lists the frontends it belongs to, and may have a `real:`
+# block whose keys replace the simulated ones with hardware: real.
+# Versions follow the Agent Router v1.2.x compatibility matrix
+# (Envoy Gateway v1.9.2+, Gateway API v1.6, Inference Extension v1.6.2).
+components:
+  # Gateway API (experimental channel) + Envoy Gateway CRDs. Disable if the
+  # cluster already has Gateway API CRDs it manages elsewhere.
+  gatewayApiCrds:
+    enabled: true
+    frontends: [inference-gateway]
+    syncWave: 0
+    namespace: envoy-gateway-system
+    repoURL: docker.io/envoyproxy
+    chart: gateway-crds-helm
+    version: v1.10.0
+    values:
+      crds:
+        gatewayAPI: {enabled: true, channel: experimental}
+        envoyGateway: {enabled: true}
+
+  # InferencePool + llm-d InferenceObjective/InferenceModelRewrite CRDs (./inference-crds).
+  inferenceCrds:
+    enabled: true
+    frontends: [inference-gateway]
+    syncWave: 0
+    namespace: nvidia-vllm
+    path: environments/nvidia-vllm/inference-crds
+    kustomize: true
+
+  agentRouterCrds:
+    enabled: true
+    frontends: [inference-gateway]
+    syncWave: 0
+    namespace: envoy-ai-gateway-system
+    repoURL: docker.io/envoyproxy
+    chart: ai-gateway-crds-helm
+    version: 1.2.1
+    values: {}
+
+  # Envoy Gateway with Agent Router's extension-manager hooks and
+  # InferencePool registered as a backend resource. Mirrors Agent Router's
+  # manifests/envoy-gateway-values.yaml + examples/inference-pool addon.
+  envoyGateway:
+    enabled: true
+    frontends: [inference-gateway]
+    syncWave: 1
+    namespace: envoy-gateway-system
+    repoURL: docker.io/envoyproxy
+    chart: gateway-helm
+    version: v1.10.0
+    skipCrds: true            # from gatewayApiCrds
+    values:
+      config:
+        envoyGateway:
+          gateway:
+            controllerName: gateway.envoyproxy.io/gatewayclass-controller
+          logging:
+            level:
+              default: info
+          provider:
+            type: Kubernetes
+            kubernetes:
+              deploy:
+                type: GatewayNamespace   # proxies run in the Gateway's namespace
+          extensionApis:
+            enableEnvoyPatchPolicy: true
+            enableBackend: true
+          extensionManager:
+            backendResources:
+              - group: inference.networking.k8s.io
+                kind: InferencePool
+                version: v1
+            hooks:
+              xdsTranslator:
+                translation:
+                  listener: {includeAll: true}
+                  route: {includeAll: true}
+                  cluster: {includeAll: true}
+                  secret: {includeAll: true}
+                post: [Translation, Cluster, Route]
+            service:
+              fqdn:
+                # Must match agentRouter's Service (its namespace is fixed here).
+                hostname: ai-gateway-controller.envoy-ai-gateway-system.svc.cluster.local
+                port: 1063
+
+  # Agent Router controller: Envoy Gateway extension server that wires the
+  # Endpoint Picker (ext_proc) into routes whose backend is an InferencePool.
+  agentRouter:
+    enabled: true
+    frontends: [inference-gateway]
+    syncWave: 2
+    namespace: envoy-ai-gateway-system
+    repoURL: docker.io/envoyproxy
+    chart: ai-gateway-helm
+    version: 1.2.1
+    skipCrds: true            # from agentRouterCrds
+    values: {}
+
+  # vLLM model servers (./vllm): the pods the InferencePool selects.
+  modelServers:
+    enabled: true
+    frontends: [inference-gateway]
+    syncWave: 3
+    namespace: nvidia-vllm
+    path: environments/nvidia-vllm/vllm
+    values: {}
+
+  # InferencePool + llm-d Endpoint Picker. The pool is named after the
+  # release (vllm-pool) and selects pods labelled app=vllm-pool.
+  endpointPicker:
+    enabled: true
+    frontends: [inference-gateway]
+    syncWave: 3
+    namespace: nvidia-vllm
+    releaseName: vllm-pool
+    repoURL: ghcr.io/llm-d/charts
+    chart: llm-d-router-gateway
+    version: v1.0.0
+    values:
+      router:
+        modelServers:
+          type: vllm
+          targetPorts:
+            - number: 8000
+          matchLabels:
+            app: vllm-pool
+        epp:
+          # Chart default requests 8 CPU / 8Gi, sized for production traffic.
+          resources:
+            requests: {cpu: 250m, memory: 256Mi}
+            limits: {memory: 1Gi}
+
+  # GatewayClass, EnvoyProxy, Gateway, HTTPRoute -> InferencePool (./gateway).
+  gateway:
+    enabled: true
+    frontends: [inference-gateway]
+    syncWave: 4
+    namespace: nvidia-vllm
+    path: environments/nvidia-vllm/gateway
+    values: {}
+
+  # Dynamo frontend + vLLM workers (./dynamo). The Dynamo operator comes from
+  # nvidia-sim.
+  dynamoGraph:
+    enabled: true
+    frontends: [dynamo]
+    syncWave: 3
+    namespace: nvidia-vllm
+    path: environments/nvidia-vllm/dynamo
+    values: {}

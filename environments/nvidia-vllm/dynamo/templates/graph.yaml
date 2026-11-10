@@ -1,0 +1,79 @@
+{{- $real := eq .Values.hardware "real" }}
+{{- $w := ternary .Values.workers.real .Values.workers.simulated $real }}
+{{- $down := eq .Values.state "down" }}
+{{- if not (has .Values.frontend.routerMode (list "kv" "round-robin" "random")) }}{{ fail "frontend.routerMode must be kv, round-robin or random" }}{{ end }}
+{{- if and $real (lt (int $w.gpus) 1) }}{{ fail "workers.real.gpus must be >= 1" }}{{ end }}
+apiVersion: nvidia.com/v1beta1
+kind: DynamoGraphDeployment
+metadata:
+  name: {{ .Values.name }}
+  labels:
+    app.kubernetes.io/part-of: testenvs
+    testenv.onit.ai/name: {{ .Values.envName }}
+    testenv.onit.ai/state: {{ .Values.state }}
+spec:
+  components:
+    - name: Frontend
+      type: frontend
+      replicas: {{ ternary 0 (int .Values.frontend.replicas) $down }}
+      podTemplate:
+        spec:
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets: {{- toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+            - name: main
+              image: {{ ternary .Values.frontend.image .Values.frontend.simulatedImage $real }}
+              imagePullPolicy: {{ .Values.imagePullPolicy }}
+              workingDir: /workspace
+              command: [python3, -m, dynamo.frontend]
+              args: [--router-mode, {{ .Values.frontend.routerMode }}]
+              resources:
+                {{- toYaml .Values.frontend.resources | nindent 16 }}
+    - name: VllmWorker
+      type: worker
+      replicas: {{ ternary 0 (int .Values.workers.replicas) $down }}
+      podTemplate:
+        spec:
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets: {{- toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+            - name: main
+              image: {{ $w.image }}
+              imagePullPolicy: {{ .Values.imagePullPolicy }}
+              workingDir: /workspace
+              {{- if $real }}
+              command: [python3, -m, dynamo.vllm]
+              args:
+                - --model
+                - {{ .Values.model | quote }}
+                - --tensor-parallel-size
+                - {{ $w.gpus | quote }}
+                {{- range $w.extraArgs }}
+                - {{ . | quote }}
+                {{- end }}
+              {{- else }}
+              command: [python3, -m, dynamo.mocker]
+              args:
+                - --model-path
+                - {{ .Values.model | quote }}
+                - --model-name
+                - {{ .Values.model | quote }}
+                - --speedup-ratio
+                - {{ $w.speedupRatio | quote }}
+                {{- range $w.extraArgs }}
+                - {{ . | quote }}
+                {{- end }}
+              {{- end }}
+              {{- with .Values.hfTokenSecret }}
+              envFrom:
+                - secretRef:
+                    name: {{ . }}
+              {{- end }}
+              {{- $res := deepCopy $w.resources }}
+              {{- if gt (int $w.gpus) 0 }}
+              {{- $_ := set $res "limits" (merge (dict "nvidia.com/gpu" (toString $w.gpus)) ($res.limits | default dict)) }}
+              {{- end }}
+              resources:
+                {{- toYaml $res | nindent 16 }}

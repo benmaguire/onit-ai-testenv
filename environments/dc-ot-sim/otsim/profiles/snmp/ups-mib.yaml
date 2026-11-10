@@ -1,0 +1,22 @@
+name: ups-mib
+description: RFC 1628 UPS-MIB (upsMIB 1.3.6.1.2.1.33), the standard UPS MIB most UPS network cards implement alongside vendor MIBs.
+objects:
+  - {oid: 1.3.6.1.2.1.33.1.1.1.0, type: string, field: vendor}            # upsIdentManufacturer
+  - {oid: 1.3.6.1.2.1.33.1.1.2.0, type: string, field: model}             # upsIdentModel
+  - {oid: 1.3.6.1.2.1.33.1.1.5.0, type: string, field: name}              # upsIdentName
+  - {oid: 1.3.6.1.2.1.33.1.2.1.0, type: integer, point: battery_status}   # upsBatteryStatus 2 normal 3 low 4 depleted
+  - {oid: 1.3.6.1.2.1.33.1.2.2.0, type: integer, point: battery_seconds_on}   # upsSecondsOnBattery
+  - {oid: 1.3.6.1.2.1.33.1.2.3.0, type: integer, point: battery_runtime_min}  # upsEstimatedMinutesRemaining
+  - {oid: 1.3.6.1.2.1.33.1.2.4.0, type: integer, point: battery_charge_pct}   # upsEstimatedChargeRemaining
+  - {oid: 1.3.6.1.2.1.33.1.2.5.0, type: integer, point: battery_voltage_v, scale: 10}  # upsBatteryVoltage (0.1 V DC)
+  - {oid: 1.3.6.1.2.1.33.1.2.7.0, type: integer, point: battery_temp_c}       # upsBatteryTemperature
+  - {oid: 1.3.6.1.2.1.33.1.3.2.0, type: integer, const: 1}                    # upsInputNumLines
+  - {oid: 1.3.6.1.2.1.33.1.3.3.1.2.1, type: integer, point: input_frequency_hz, scale: 10}  # upsInputFrequency (0.1 Hz)
+  - {oid: 1.3.6.1.2.1.33.1.3.3.1.3.1, type: integer, point: input_voltage_v}  # upsInputVoltage (RMS V)
+  - {oid: 1.3.6.1.2.1.33.1.4.1.0, type: integer, point: output_source}        # upsOutputSource 2 none 3 normal 5 battery
+  - {oid: 1.3.6.1.2.1.33.1.4.2.0, type: integer, point: output_frequency_hz, scale: 10}  # upsOutputFrequency (0.1 Hz)
+  - {oid: 1.3.6.1.2.1.33.1.4.3.0, type: integer, const: 1}                    # upsOutputNumLines
+  - {oid: 1.3.6.1.2.1.33.1.4.4.1.2.1, type: integer, point: output_voltage_v} # upsOutputVoltage
+  - {oid: 1.3.6.1.2.1.33.1.4.4.1.3.1, type: integer, point: output_current_a, scale: 10}  # upsOutputCurrent (0.1 A)
+  - {oid: 1.3.6.1.2.1.33.1.4.4.1.4.1, type: integer, point: output_kw, scale: 1000}       # upsOutputPower (W)
+  - {oid: 1.3.6.1.2.1.33.1.4.4.1.5.1, type: integer, point: output_load_pct}  # upsOutputPercentLoad

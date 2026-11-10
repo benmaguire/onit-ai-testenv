@@ -414,10 +414,11 @@ func KubernetesInjectors() []Injector {
 	}
 }
 
-// All returns every simulation type (nvidia-sim and runai-sim).
+// All returns every simulation type.
 func All() []Injector {
 	all := append(GPUInjectors(), KubernetesInjectors()...)
 	all = append(all, RunaiInjectors()...)
 	all = append(all, FaultInjectors()...)
+	all = append(all, OTInjectors()...)
 	return append(all, observeOnly{})
 }

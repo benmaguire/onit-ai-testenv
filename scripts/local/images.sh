@@ -4,6 +4,7 @@
 
 SIMULATOR_IMG=docker.io/testenv/simulator:local
 KNE_RUNNER_IMG=docker.io/testenv/kne-runner:local
+OTSIM_IMG=docker.io/testenv/otsim:local
 
 # docker_build <context-dir> <image>: builds for the cluster nodes' architecture,
 # with or without BuildKit (Homebrew's docker CLI may lack the buildx plugin).
@@ -46,6 +47,8 @@ build_load() {
 # local_images <env>: images an environment needs that are built from this repo.
 local_images() {
   case "$1" in
+    dc-ot-sim)
+      if [ -z "${OTSIM_IMAGE:-}" ]; then build_load "$ROOT/environments/dc-ot-sim/otsim" "$OTSIM_IMG"; fi ;;
     network-kne)
       if [ -z "${KNE_RUNNER_IMAGE:-}" ]; then build_load "$ROOT/environments/network-kne/runner" "$KNE_RUNNER_IMG"; fi ;;
   esac

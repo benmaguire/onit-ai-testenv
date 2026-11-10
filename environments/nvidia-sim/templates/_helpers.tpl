@@ -53,3 +53,18 @@ spec:
         factor: 2
         maxDuration: 5m
 {{- end }}
+
+{{/*
+Effective component for the current hardware mode. With hardware: real, every
+key of the component's `real:` block replaces the simulated value (values are
+replaced, not merged, so simulation-only settings do not leak into real mode).
+Usage: $c := include "nvsim.component" (dict "root" $ "c" .Values.components.x) | fromYaml
+*/}}
+{{- define "nvsim.component" -}}
+{{- $c := deepCopy .c -}}
+{{- if and (eq (.root.Values.hardware | default "simulated") "real") (hasKey $c "real") -}}
+{{- range $k, $v := $c.real }}{{ $_ := set $c $k $v }}{{ end -}}
+{{- end -}}
+{{- $_ := unset $c "real" -}}
+{{- toYaml $c -}}
+{{- end }}

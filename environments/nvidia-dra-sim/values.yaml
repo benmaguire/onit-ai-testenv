@@ -1,0 +1,102 @@
+state: up
+# simulated | real (set by the ApplicationSet from env.yaml)
+hardware: simulated
+global:
+  envName: nvidia-dra-sim
+  project: testenvs
+  repoURL: https://github.com/benmaguire/onit-ai-testenv.git
+  targetRevision: main
+  argocdNamespace: argocd
+  destinationServer: https://kubernetes.default.svc
+
+# Each component may have a `real:` block; with hardware: real its keys
+# replace the simulated ones (e.g. a different chart, version or values).
+components:
+  # Mock GPUs (simulated only). Mokka also labels the node nvidia.com/gpu.present=true,
+  # which the DRA kubelet plugin's node affinity requires.
+  mokka:
+    enabled: true
+    syncWave: 0
+    namespace: nvidia-dra-mokka
+    repoURL: ghcr.io/nvidia/k8s-test-infra/chart
+    chart: nvml-mock
+    version: 0.6.0
+    values:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: type, operator: NotIn, values: [kwok]}
+      gpu:
+        profile: h100
+      featureGates:
+        IMEXDownload: false
+      # k3s: set up by environments/nvidia-sim/scripts/k3s-host-prep.sh; kind: Mokka does it (local override).
+      nodeAgent:
+        containerRuntime:
+          enabled: false
+      nri:
+        # Puts the mock driver into containers that hold a DRA GPU allocation.
+        enabled: true
+    real:
+      enabled: false
+
+  # Real hardware only: driver/toolkit/DCGM from the GPU Operator, with the
+  # device plugin off (DRA allocates the GPUs instead).
+  gpuOperator:
+    enabled: false
+    syncWave: 1
+    namespace: nvidia-dra-gpu-operator
+    repoURL: https://helm.ngc.nvidia.com/nvidia
+    chart: gpu-operator
+    version: v26.7.2
+    values: {}
+    real:
+      enabled: true
+      values:
+        driver: {enabled: false}       # host-installed driver; true to let the operator install it
+        toolkit:
+          enabled: true
+          env:
+            - {name: CONTAINERD_SOCKET, value: /run/k3s/containerd/containerd.sock}
+        cdi: {enabled: true}
+        devicePlugin: {enabled: false}
+        dcgm: {enabled: true}
+        dcgmExporter: {enabled: true}
+
+  # NVIDIA DRA driver: publishes ResourceSlices for the GPUs and prepares
+  # claimed devices (CDI) for pods.
+  draDriver:
+    enabled: true
+    syncWave: 2
+    namespace: nvidia-dra
+    repoURL: https://helm.ngc.nvidia.com/nvidia
+    # The chart and version Mokka's DRA guide validates.
+    chart: dra-driver-nvidia-gpu
+    version: 0.5.1
+    values:
+      nvidiaDriverRoot: /var/lib/nvml-mock/driver   # Mokka's staged driver tree
+      gpuResourcesEnabledOverride: true             # mock nodes don't pass the driver's own checks
+      resources:
+        computeDomains:
+          enabled: false                            # needs an NVLink fabric (gb200/gb300 profiles)
+    real:
+      chart: nvidia-dra-driver-gpu
+      version: 25.12.0
+      values:
+        # "/" for a host-installed driver; /run/nvidia/driver if the GPU Operator installs it.
+        nvidiaDriverRoot: /
+        # Required to publish GPUs: confirms the device plugin is off (gpuOperator.real.values above).
+        gpuResourcesEnabledOverride: true
+        resources:
+          computeDomains:
+            enabled: false                          # true on NVLink multi-node systems (GB200 NVL72)
+
+  # ResourceClaimTemplate + sample workloads claiming GPUs (chart in ./workloads).
+  workloads:
+    enabled: true
+    syncWave: 3
+    namespace: nvidia-dra-sim
+    path: environments/nvidia-dra-sim/workloads
+    values: {}

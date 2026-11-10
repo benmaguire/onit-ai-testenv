@@ -1,0 +1,14 @@
+# Simulation suite for `make sim-suite ENV=nvidia-vllm` (scripts/local/testenv.sh).
+# One simulation per line:  name | type | simctl inject arguments
+# gw-* entries are for frontend: inference-gateway, dyn-* for frontend: dynamo:
+#   make sim-suite ENV=nvidia-vllm ONLY='^gw-'     make sim-suite ENV=nvidia-vllm ONLY='^dyn-'
+# Probes send real requests through the Gateway (or the Dynamo frontend), so
+# probe_success_ratio / probe_latency_p95 show what a client saw.
+gw-pod-kill          | pod-kill        | --target-namespace nvidia-vllm --pod-selector app=vllm-pool --count 1 --baseline 1m --after 1m --observe vllm --observe probes --probe-http models=http://inference-gateway.nvidia-vllm.svc/v1/models
+gw-slow-pod          | net-latency     | --target-namespace nvidia-vllm --pod-selector app=vllm-pool --count 1 --param delay=300ms --duration 2m --baseline 1m --after 1m --observe vllm --observe probes --probe-http models=http://inference-gateway.nvidia-vllm.svc/v1/models
+gw-epp-kill          | pod-kill        | --target-namespace nvidia-vllm --pod-selector llm-d-router-gateway=vllm-pool-epp --count 1 --baseline 1m --after 1m --observe vllm --observe probes --probe-http models=http://inference-gateway.nvidia-vllm.svc/v1/models
+gw-epp-isolate       | network-isolate | --target-namespace nvidia-vllm --pod-selector llm-d-router-gateway=vllm-pool-epp --duration 1m --baseline 1m --after 1m --observe vllm --observe probes --probe-http models=http://inference-gateway.nvidia-vllm.svc/v1/models
+gw-envoy-cpu         | cpu-stress      | --target-namespace nvidia-vllm --pod-selector app.kubernetes.io/name=envoy --param workers=2 --duration 1m --baseline 1m --after 1m --observe kubernetes --observe probes --probe-http models=http://inference-gateway.nvidia-vllm.svc/v1/models
+dyn-worker-kill      | dynamo-worker-kill | --target-namespace nvidia-vllm --graph vllm-dynamo --component worker --count 1 --baseline 1m --after 1m --observe dynamo --observe kubernetes --probe-http models=http://vllm-dynamo-frontend.nvidia-vllm.svc:8000/v1/models
+dyn-frontend-kill    | dynamo-frontend-kill | --target-namespace nvidia-vllm --graph vllm-dynamo --baseline 1m --after 1m --observe dynamo --probe-http models=http://vllm-dynamo-frontend.nvidia-vllm.svc:8000/v1/models
+dyn-slow-worker      | net-latency     | --target-namespace nvidia-vllm --graph vllm-dynamo --component worker --count 1 --param delay=150ms --duration 2m --baseline 1m --after 1m --observe dynamo --probe-http models=http://vllm-dynamo-frontend.nvidia-vllm.svc:8000/v1/models

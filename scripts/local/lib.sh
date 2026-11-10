@@ -42,23 +42,59 @@ host_arch() { case "$(uname -m)" in arm64|aarch64) echo arm64 ;; x86_64|amd64) e
 
 # --- environment metadata ----------------------------------------------------------
 # env_meta <env>: sets REQ_CPU REQ_MEM ARCH DEPS SUPPORTED RECOMMENDED NOTE
+# HW_MODES (simulated / real) CONFLICTS MIN_MINOR (Kubernetes 1.x)
 env_meta() {
   REQ_CPU=1; REQ_MEM=1; ARCH=any; DEPS=""; SUPPORTED="kind k3d k3s other"; RECOMMENDED=k3d; NOTE=""
+  HW_MODES="simulated"; CONFLICTS=""; MIN_MINOR=28
   case "$1" in
     qa) ;;
     observability) REQ_CPU=2; REQ_MEM=3 ;;
     runai-sim) REQ_CPU=2; REQ_MEM=3 ;;
-    nvidia-triton-cpu) REQ_CPU=3; REQ_MEM=6; NOTE="pulls a ~20 GB Triton image: give the container VM DISK>=60" ;;
+    nvidia-triton-cpu) REQ_CPU=3; REQ_MEM=6; HW_MODES="simulated real"; NOTE="pulls a ~20 GB Triton image: give the container VM DISK>=60" ;;
     nvidia-sim)
-      REQ_CPU=4; REQ_MEM=8; SUPPORTED="kind k3s"; RECOMMENDED=kind
+      REQ_CPU=4; REQ_MEM=8; SUPPORTED="kind k3s"; RECOMMENDED=kind; HW_MODES="simulated real"; CONFLICTS="nvidia-dra-sim"
       NOTE="Mokka configures containerd on the node: kind (systemd in the node container) or k3s in a VM with host prep. k3d runs k3s without systemd, so the containerd setup cannot run there." ;;
     nvidia-dynamo-disagg)
-      REQ_CPU=5; REQ_MEM=10; DEPS="nvidia-sim"; SUPPORTED="kind k3s"; RECOMMENDED=kind ;;
+      REQ_CPU=5; REQ_MEM=10; DEPS="nvidia-sim"; SUPPORTED="kind k3s"; RECOMMENDED=kind; HW_MODES="simulated real" ;;
+    nvidia-dra-sim)
+      REQ_CPU=3; REQ_MEM=6; SUPPORTED="kind k3s"; RECOMMENDED=kind; HW_MODES="simulated real"; MIN_MINOR=34
+      CONFLICTS="nvidia-sim nvidia-dynamo-disagg nvidia-nvsentinel"
+      NOTE="DRA (resource.k8s.io/v1) needs Kubernetes 1.34+; one Mokka per cluster, so not together with nvidia-sim." ;;
+    nvidia-nvsentinel)
+      REQ_CPU=6; REQ_MEM=10; DEPS="nvidia-sim"; SUPPORTED="kind k3s"; RECOMMENDED=kind; HW_MODES="simulated real"
+      NOTE="cert-manager is installed cluster-wide; skip if your cluster already has it (components.certManager.enabled: false)." ;;
+    nvidia-nim)
+      REQ_CPU=4; REQ_MEM=16; DEPS="nvidia-sim"; HW_MODES="real"
+      NOTE="needs NGC secrets ngc-secret and ngc-api-secret in namespace nvidia-nim (environments/nvidia-nim/README.md)." ;;
     network-kne)
       REQ_CPU=6; REQ_MEM=8; ARCH=amd64; RECOMMENDED=kind
       NOTE="Cisco XRd and meshnet are x86_64-only, and the XRd image must be imported (see environments/network-kne/README.md)." ;;
+    nvidia-vllm)
+      REQ_CPU=3; REQ_MEM=6; HW_MODES="simulated real"
+      if [ "$(env_frontend "$1")" = dynamo ]; then
+        REQ_CPU=5; REQ_MEM=10; DEPS="nvidia-sim"; SUPPORTED="kind k3s"; RECOMMENDED=kind
+        NOTE="frontend dynamo: Dynamo frontend + workers; the Dynamo platform comes from nvidia-sim."
+      else
+        [ "$(env_hardware "$1")" = real ] && DEPS="nvidia-sim"
+        NOTE="frontend inference-gateway installs Gateway API + Envoy Gateway CRDs cluster-wide (k3s: Traefik may already own Gateway API CRDs)."
+      fi ;;
+    dc-ot-sim) REQ_CPU=1; REQ_MEM=1 ;;
     *) [ -f "$ROOT/environments/$1/env.yaml" ] || die "unknown environment '$1' (have: $(list_envs | tr '\n' ' '))" ;;
   esac
+}
+
+# env_hardware <env>: HARDWARE if set, else env.yaml's hardware (default simulated).
+env_hardware() {
+  if [ -n "${HARDWARE:-}" ]; then echo "$HARDWARE"; return; fi
+  local h
+  h=$(yq '.hardware // "simulated"' "$ROOT/environments/$1/env.yaml")
+  echo "${h:-simulated}"
+}
+
+# env_frontend <env>: FRONTEND if set, else the env's values.yaml frontend (nvidia-vllm).
+env_frontend() {
+  if [ -n "${FRONTEND:-}" ]; then echo "$FRONTEND"; return; fi
+  yq '.frontend // ""' "$ROOT/environments/$1/values.yaml" 2>/dev/null
 }
 
 list_envs() { for f in "$ROOT"/environments/*/env.yaml; do basename "$(dirname "$f")"; done; }

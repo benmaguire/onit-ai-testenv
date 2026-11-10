@@ -1,0 +1,9 @@
+name: generic-genset
+description: Illustrative generator controller map (vendors publish their own maps for their controllers).
+input:
+  - {addr: 0, point: state, type: uint16}                # 0 stopped, 1 starting, 2 running, 3 cooldown, 4 failed
+  - {addr: 1, point: output_voltage_v, type: uint16, scale: 10}
+  - {addr: 2, point: output_frequency_hz, type: uint16, scale: 100}
+  - {addr: 3, point: run_seconds, type: uint32}
+discrete:
+  - {addr: 0, point: running}

@@ -1,0 +1,18 @@
+name: generic-ups
+description: >-
+  Illustrative UPS map (vendors publish their own; e.g. replace with your UPS's
+  Modbus document). Input registers are read-only measurements.
+input:
+  - {addr: 0, point: input_voltage_v, type: uint16, scale: 10}
+  - {addr: 1, point: input_frequency_hz, type: uint16, scale: 100}
+  - {addr: 2, point: output_voltage_v, type: uint16, scale: 10}
+  - {addr: 3, point: output_frequency_hz, type: uint16, scale: 100}
+  - {addr: 4, point: output_kw, type: uint32, scale: 100}
+  - {addr: 6, point: output_load_pct, type: uint16, scale: 10}
+  - {addr: 7, point: battery_charge_pct, type: uint16, scale: 10}
+  - {addr: 8, point: battery_runtime_min, type: uint16, scale: 10}
+  - {addr: 9, point: battery_voltage_v, type: uint16, scale: 10}
+  - {addr: 10, point: battery_temp_c, type: int16, scale: 10, quantity: temperature}
+  - {addr: 11, point: output_source, type: uint16}        # UPS-MIB codes: 2 none, 3 normal, 5 battery
+discrete:
+  - {addr: 0, point: on_battery}

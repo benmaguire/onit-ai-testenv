@@ -20,6 +20,10 @@ spec:
     - ghcr.io/kai-scheduler/kai-scheduler          # KAI Scheduler, OCI (runai-sim)
     - ghcr.io/prometheus-community/charts          # kube-prometheus-stack, OCI (observability)
     - https://github.com/openconfig/kne.git        # KNE meshnet manifests (network-kne)
+    - ghcr.io/nvidia                               # NVSentinel, OCI (nvidia-nvsentinel)
+    - quay.io/jetstack/charts                      # cert-manager, OCI (nvidia-nvsentinel)
+    - docker.io/envoyproxy                         # Envoy Gateway + Agent Router, OCI (nvidia-vllm)
+    - ghcr.io/llm-d/charts                         # llm-d router (InferencePool + EPP), OCI (nvidia-vllm)
   destinations:
     - server: https://kubernetes.default.svc
       namespace: "*"

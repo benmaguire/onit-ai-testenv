@@ -1,0 +1,112 @@
+{{- $real := eq .Values.hardware "real" }}
+{{- $m := ternary .Values.vllm .Values.simulator $real }}
+{{- $replicas := ternary 0 (int $m.replicas) (eq .Values.state "down") }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.poolLabel }}
+  labels:
+    app: {{ .Values.poolLabel }}
+    app.kubernetes.io/name: vllm
+    app.kubernetes.io/part-of: testenvs
+    testenv.onit.ai/name: {{ .Values.envName }}
+    testenv.onit.ai/state: {{ .Values.state }}
+spec:
+  replicas: {{ $replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.poolLabel }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.poolLabel }}
+        app.kubernetes.io/name: vllm
+        testenv.onit.ai/name: {{ .Values.envName }}
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: vllm
+          image: {{ $m.image }}
+          imagePullPolicy: IfNotPresent
+          {{- if $real }}
+          command: [vllm, serve]
+          args:
+            - {{ $m.model | quote }}
+            - --port=8000
+            - --tensor-parallel-size={{ $m.gpus }}
+            - --max-model-len={{ $m.maxModelLen }}
+            - --gpu-memory-utilization={{ $m.gpuMemoryUtilization }}
+            {{- range $m.extraArgs }}
+            - {{ . | quote }}
+            {{- end }}
+          {{- else }}
+          args:
+            - --model={{ $m.model }}
+            - --port=8000
+            - --time-to-first-token={{ $m.timeToFirstToken }}
+            - --inter-token-latency={{ $m.interTokenLatency }}
+            - --max-num-seqs={{ $m.maxNumSeqs }}
+            {{- range $m.extraArgs }}
+            - {{ . | quote }}
+            {{- end }}
+          {{- end }}
+          env:
+            - name: POD_NAME
+              valueFrom: {fieldRef: {fieldPath: metadata.name}}
+            - name: POD_NAMESPACE
+              valueFrom: {fieldRef: {fieldPath: metadata.namespace}}
+            - name: POD_IP
+              valueFrom: {fieldRef: {fieldPath: status.podIP}}
+            {{- if $real }}
+            - name: HF_HOME
+              value: /cache/huggingface
+            {{- end }}
+          {{- if and $real $m.hfTokenSecret }}
+          envFrom:
+            - secretRef:
+                name: {{ $m.hfTokenSecret }}
+          {{- end }}
+          ports:
+            - {name: http, containerPort: 8000}
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 5
+            failureThreshold: 3
+          startupProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 10
+            # Real vLLM downloads and loads the model first.
+            failureThreshold: {{ ternary 120 30 $real }}
+          {{- $res := deepCopy $m.resources }}
+          {{- if gt (int $m.gpus) 0 }}
+          {{- $_ := set $res "limits" (merge (dict "nvidia.com/gpu" (toString $m.gpus)) ($res.limits | default dict)) }}
+          {{- end }}
+          resources:
+            {{- toYaml $res | nindent 12 }}
+          {{- if $real }}
+          volumeMounts:
+            - {name: cache, mountPath: /cache}
+            - {name: shm, mountPath: /dev/shm}
+          {{- end }}
+      {{- if $real }}
+      volumes:
+        - name: cache
+          emptyDir: {sizeLimit: {{ $m.cacheSize }}}
+        - name: shm
+          emptyDir: {medium: Memory, sizeLimit: 2Gi}
+      {{- end }}
+---
+# Direct (gateway-bypassing) access and metrics scraping.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.poolLabel }}
+  labels:
+    app: {{ .Values.poolLabel }}
+    app.kubernetes.io/name: vllm
+    testenv.onit.ai/name: {{ .Values.envName }}
+spec:
+  selector:
+    app: {{ .Values.poolLabel }}
+  ports:
+    - {name: http, port: 8000, targetPort: http}

@@ -1,0 +1,11 @@
+name: us
+description: United States (NEC / NFPA). Rack distribution 120/208 V 3-phase; 277/480 V and 240/415 V are also common.
+voltageLN: 120
+voltageLL: 208
+frequencyHz: 60
+units: {temperature: F, flow: gpm, pressure: psi}
+climate: {designAmbientC: 35, diurnalSwingC: 8}
+cooling: {evaporative: true, waterLPerKWhRejected: 1.8}
+gridCarbonGPerKWh: 370
+standards: [NFPA 70 (NEC), NFPA 75, ANSI/TIA-942, ASHRAE 90.4, ASHRAE TC 9.9, UL 1778 (UPS), UL 9540 (energy storage)]
+reporting: [ENERGY STAR Portfolio Manager (voluntary), state and utility programs]

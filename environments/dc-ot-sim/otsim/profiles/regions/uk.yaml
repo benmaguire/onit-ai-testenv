@@ -1,0 +1,11 @@
+name: uk
+description: United Kingdom. 230/400 V 50 Hz.
+voltageLN: 230
+voltageLL: 400
+frequencyHz: 50
+units: {temperature: C, flow: lpm, pressure: kpa}
+climate: {designAmbientC: 30, diurnalSwingC: 7}
+cooling: {evaporative: false, waterLPerKWhRejected: 0}
+gridCarbonGPerKWh: 150
+standards: [BS 7671 (wiring), BS EN 50600, IEC 62040]
+reporting: [Climate Change Agreement for data centres (voluntary, PUE-based), SECR]

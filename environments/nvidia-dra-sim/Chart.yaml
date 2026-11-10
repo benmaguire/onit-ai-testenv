@@ -1,0 +1,5 @@
+apiVersion: v2
+name: testenv-nvidia-dra-sim
+description: App-of-apps for GPU Dynamic Resource Allocation (Mokka or real GPUs + NVIDIA DRA driver)
+type: application
+version: 0.1.0

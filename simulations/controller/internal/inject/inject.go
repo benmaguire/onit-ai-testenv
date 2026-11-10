@@ -5,6 +5,7 @@ package inject
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"sort"
 	"strconv"
 	"strings"
@@ -37,6 +38,11 @@ type Env struct {
 	ToolsImage string
 	// Now is the clock (overridable in tests).
 	Now func() time.Time
+	// OTSimURL is the otsim admin API for ot-* types; empty derives
+	// http://otsim.<target namespace, default dc-ot-sim>.svc:8080.
+	OTSimURL string
+	// HTTPClient for API-driven injectors (nil = default with a timeout).
+	HTTPClient *http.Client
 }
 
 // Result is what Inject did, persisted in the Simulation status so Recover

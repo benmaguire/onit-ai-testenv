@@ -1,0 +1,11 @@
+name: au
+description: Australia. 230/400 V 50 Hz (AS 60038), AS/NZS 3000 wiring rules.
+voltageLN: 230
+voltageLL: 400
+frequencyHz: 50
+units: {temperature: C, flow: lpm, pressure: kpa}
+climate: {designAmbientC: 38, diurnalSwingC: 10}
+cooling: {evaporative: true, waterLPerKWhRejected: 1.6}
+gridCarbonGPerKWh: 600
+standards: [AS/NZS 3000, AS/NZS 3008, AS 62040 (UPS), NABERS for Data Centres]
+reporting: [NABERS Energy / Water ratings for data centres (IT equipment and infrastructure), NGER (corporate emissions reporting), Government data centre strategy requirements]

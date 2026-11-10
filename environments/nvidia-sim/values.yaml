@@ -1,5 +1,7 @@
 # Set by the ApplicationSet from env.yaml; defaults let `helm template` work locally.
 state: up            # up | down
+# simulated | real (set by the ApplicationSet from env.yaml)
+hardware: simulated
 global:
   envName: nvidia-sim
   project: testenvs
@@ -56,6 +58,10 @@ components:
         excludedNamespaces:
           - nvidia-sim-gpu-operator
 
+    # Real NVIDIA hardware: no mock driver.
+    real:
+      enabled: false
+
   # --- NVIDIA GPU Operator (device plugin, GFD, dcgm-exporter, validator) ----
   # Overlay from Mokka's GPU Operator guide. Stay on v26.3.x: v26.7.x gates
   # operands on /proc/modules, which Mokka cannot serve.
@@ -75,7 +81,9 @@ components:
       toolkit:
         enabled: false        # host prep installs the toolkit for k3s
       dcgm:
-        enabled: false        # dcgm-exporter embeds the host engine
+        # Standalone nv-hostengine (:5555): NVSentinel (nvidia-nvsentinel env)
+        # polls it. dcgm-exporter would otherwise embed its own host engine.
+        enabled: true
       dcgmExporter:
         enabled: true
         env:
@@ -113,6 +121,39 @@ components:
             - name: WITH_WORKLOAD   # no CUDA under Mokka
               value: "false"
 
+    # Real NVIDIA hardware: the stock operator with the real driver path.
+    real:
+      version: v26.7.2
+      values:
+        operator:
+          upgradeCRD: false
+        # Most GPU nodes ship with the NVIDIA driver installed (DGX OS, cloud
+        # GPU images). Set true to let the operator install it instead.
+        driver:
+          enabled: false
+        # Configures k3s' embedded containerd (nvidia runtime + CDI).
+        toolkit:
+          enabled: true
+          env:
+            - name: CONTAINERD_SOCKET
+              value: /run/k3s/containerd/containerd.sock
+        cdi:
+          enabled: true
+        dcgm:
+          enabled: true
+        dcgmExporter:
+          enabled: true
+        devicePlugin:
+          enabled: true
+        gfd:
+          enabled: true
+        mig:
+          strategy: single
+        migManager:
+          enabled: true
+        nodeStatusExporter:
+          enabled: true
+
   # --- NVIDIA Dynamo platform (operator only) --------------------------------
   # etcd, NATS, Grove and KAI are off by default and not needed for an
   # aggregated mocker graph. The operator installs its CRDs at startup.
@@ -142,6 +183,10 @@ components:
     path: environments/nvidia-sim/graph
     # Overrides for graph/values.yaml. state: down forces replicas to 0.
     values: {}
+    # Real NVIDIA hardware: a real vLLM worker instead of the mocker.
+    real:
+      values:
+        engine: vllm
 
   # --- Failure/recovery simulation controller (simulations/nvidia-sim) ------
   # Simulation CRD + HTTP API for injecting GPU, Dynamo and Kubernetes faults

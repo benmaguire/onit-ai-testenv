@@ -1,0 +1,15 @@
+name: generic-crah
+description: Illustrative CRAH/CRAC map (air handler). BMS points are often BACnet; many units also offer Modbus.
+regionUnits: true
+holding:
+  - {addr: 0, point: supply_air_setpoint_c, type: int16, scale: 10, quantity: temperature, writable: true}
+input:
+  - {addr: 0, point: supply_air_temp_c, type: int16, scale: 10, quantity: temperature}
+  - {addr: 1, point: return_air_temp_c, type: int16, scale: 10, quantity: temperature}
+  - {addr: 2, point: humidity_pct, type: uint16, scale: 10}
+  - {addr: 3, point: cooling_load_kw, type: uint16, scale: 10}
+  - {addr: 4, point: fan_power_kw, type: uint16, scale: 100}
+coils:
+  - {addr: 0, point: enable, writable: true}
+discrete:
+  - {addr: 0, point: running}

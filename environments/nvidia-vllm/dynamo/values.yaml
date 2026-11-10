@@ -1,0 +1,44 @@
+# Set by the parent chart.
+state: up
+hardware: simulated
+envName: nvidia-vllm
+
+name: vllm-dynamo
+imagePullSecrets: []
+imagePullPolicy: IfNotPresent
+model: Qwen/Qwen3-0.6B
+hfTokenSecret: ""        # Secret with HF_TOKEN, for gated models
+
+frontend:
+  replicas: 1
+  # Dynamo frontend: OpenAI-compatible HTTP API (:8000) and router.
+  # kv routes each request to the worker with the best KV-cache overlap;
+  # round-robin / random for comparison runs.
+  routerMode: kv
+  image: nvcr.io/nvidia/ai-dynamo/vllm-runtime:1.6.1
+  simulatedImage: nvcr.io/nvidia/ai-dynamo/dynamo-planner:1.6.1
+  resources:
+    requests: {cpu: 250m, memory: 512Mi}
+    limits: {memory: 2Gi}
+
+workers:
+  replicas: 2            # >1 so the router has a choice
+  # hardware: simulated -> dynamo.mocker, Dynamo's simulated vLLM engine
+  # (fetches only the model's config/tokenizer). Asks for a Mokka mock GPU
+  # when gpus > 0, as nvidia-sim's graph does.
+  simulated:
+    image: nvcr.io/nvidia/ai-dynamo/dynamo-planner:1.6.1
+    gpus: 1
+    speedupRatio: "1.0"
+    extraArgs: []
+    resources:
+      requests: {cpu: 250m, memory: 512Mi}
+      limits: {memory: 2Gi}
+  # hardware: real -> dynamo.vllm (vLLM engine inside a Dynamo worker).
+  real:
+    image: nvcr.io/nvidia/ai-dynamo/vllm-runtime:1.6.1
+    gpus: 1              # per worker; also --tensor-parallel-size
+    extraArgs: []        # e.g. [--max-model-len, "8192"]
+    resources:
+      requests: {cpu: "2", memory: 8Gi}
+      limits: {memory: 32Gi}

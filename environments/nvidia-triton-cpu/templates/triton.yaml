@@ -1,5 +1,6 @@
 {{- define "r" -}}{{- if eq .root.Values.state "down" }}0{{ else }}{{ .n }}{{ end -}}{{- end }}
 {{- $t := .Values.triton }}
+{{- $real := eq (.Values.hardware | default "simulated") "real" }}
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -62,7 +63,7 @@ spec:
             {{- end }}
             - --strict-readiness=true
             - --allow-metrics=true
-            - --allow-gpu-metrics=false
+            - --allow-gpu-metrics={{ $real }}
           ports:
             - {name: http, containerPort: 8000}
             - {name: grpc, containerPort: 8001}
@@ -78,7 +79,11 @@ spec:
             httpGet: {path: /v2/health/live, port: http}
             periodSeconds: 10
             failureThreshold: 60
-          resources: {{- toYaml $t.resources | nindent 12 }}
+          {{- $res := deepCopy $t.resources }}
+          {{- if $real }}
+          {{- $_ := set $res "limits" (merge (dict "nvidia.com/gpu" (toString .Values.real.gpus)) ($res.limits | default dict)) }}
+          {{- end }}
+          resources: {{- toYaml $res | nindent 12 }}
           volumeMounts:
             - {name: models, mountPath: /models}
             - {name: shm, mountPath: /dev/shm}

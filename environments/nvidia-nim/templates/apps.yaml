@@ -1,0 +1,15 @@
+{{- if ne (.Values.hardware | default "simulated") "real" }}{{ fail "nvidia-nim runs on real NVIDIA GPUs only: set hardware: real in env.yaml (and nvidia-sim hardware: real for the GPU Operator)" }}{{ end }}
+{{- range $key, $raw := .Values.components }}
+{{- $c := include "nim.component" (dict "root" $ "c" $raw) | fromYaml }}
+{{- if $c.enabled }}
+---
+{{- if $c.chart }}
+{{- $src := dict "repoURL" $c.repoURL "chart" $c.chart "targetRevision" $c.version "helm" (dict "releaseName" (kebabcase $key) "valuesObject" ($c.values | default dict)) }}
+{{ include "nim.app" (dict "root" $ "key" (kebabcase $key) "c" $c "source" $src "syncOptions" (list "SkipDryRunOnMissingResource=true")) }}
+{{- else }}
+{{- $vals := merge (dict "state" $.Values.state "hardware" ($.Values.hardware | default "simulated") "envName" $.Values.global.envName) (deepCopy ($c.values | default dict)) }}
+{{- $src := dict "repoURL" $.Values.global.repoURL "path" $c.path "targetRevision" $.Values.global.targetRevision "helm" (dict "releaseName" (kebabcase $key) "valuesObject" $vals) }}
+{{ include "nim.app" (dict "root" $ "key" (kebabcase $key) "c" $c "source" $src "syncOptions" (list "SkipDryRunOnMissingResource=true")) }}
+{{- end }}
+{{- end }}
+{{- end }}

@@ -40,7 +40,7 @@ case "$cmd" in
   down)           need_env; detect_context; api_ok || die "cluster '$CTX' not reachable"; server_is_local || [ "$ALLOW_REMOTE" = 1 ] || die "refusing to tear down on non-local context '$CTX' ($SERVER); ALLOW_REMOTE=1 to override"; env_down "$ENV" ;;
   render)         need_env; ensure_tool helm; ensure_tool yq; detect_context; [ -n "$KIND_OF" ] || KIND_OF=${CLUSTER/auto/k3d}; [ "$CLUSTER" != auto ] && KIND_OF=$CLUSTER; DRY_RUN=1; env_up "$ENV" ;;
   status)         ensure_tool yq; if [ -n "${ENV:-}" ]; then status_env "$ENV"; else status_all; fi ;;
-  envs)           for e in $(list_envs); do env_meta "$e"; printf '%-22s cpu~%-3s mem~%-4s arch=%-6s clusters=%-18s %s\n' "$e" "$REQ_CPU" "${REQ_MEM}Gi" "$ARCH" "$(echo $SUPPORTED | tr ' ' ',')" "$( [ -n "$DEPS" ] && echo "needs: $DEPS")"; done ;;
+  envs)           for e in $(list_envs); do env_meta "$e"; printf '%-22s cpu~%-3s mem~%-5s arch=%-6s hw=%-15s clusters=%-18s %s\n' "$e" "$REQ_CPU" "${REQ_MEM}Gi" "$ARCH" "$(echo $HW_MODES | tr ' ' ',')" "$(echo $SUPPORTED | tr ' ' ',')" "$( [ -n "$DEPS" ] && echo "needs: $DEPS")$( [ -n "$CONFLICTS" ] && echo " conflicts: $CONFLICTS")"; done ;;
   simulator)      ensure_tool yq; detect_context; api_ok || die "no reachable cluster"; sim_deploy ;;
   simulator-delete) ensure_tool yq; detect_context; sim_undeploy ;;
   sim)            ensure_tool yq; detect_context; sim_run "${TYPE:-}" "${ARGS:-}" ;;

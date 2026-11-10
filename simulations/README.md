@@ -8,7 +8,7 @@ on one controller.
 
 | Directory | What |
 |---|---|
-| [controller/](controller/README.md) | The Go controller: `Simulation` CRD, HTTP API, `simctl`, Go client, hub + remote agents. [Catalog of all 42 types](controller/CATALOG.md) |
+| [controller/](controller/README.md) | The Go controller: `Simulation` CRD, HTTP API, `simctl`, Go client, hub + remote agents. [Catalog of all 60 types](controller/CATALOG.md) |
 | [faults/](faults/README.md) | Generic faults for any workload: latency, jitter, packet loss, corruption, reordering, bandwidth, dependency / DNS / service outages, CPU / memory stress, container crashes |
 | [controller/docs/observability.md](controller/docs/observability.md) | **How to monitor and extract metrics**: baseline / fault / recovery / after windows, Prometheus profiles, probes, reports, CSV export, Grafana |
 
@@ -17,6 +17,10 @@ on one controller.
 | `nvidia-sim` | GPU faults through Mokka (Xid, lost GPU, ECC, thermal, power, NVLink, fabric…), Dynamo worker/frontend/operator faults | [nvidia-sim/](nvidia-sim/README.md) |
 | `nvidia-dynamo-disagg` | prefill/decode kills (request migration), KV-router and prefill/decode network impairment, GPU faults on workers | [nvidia-dynamo-disagg/](nvidia-dynamo-disagg/README.md) |
 | `nvidia-triton-cpu` | inference server under latency/jitter/loss, CPU/memory pressure, replica loss vs PDB/HPA, crash restarts | [nvidia-triton-cpu/](nvidia-triton-cpu/README.md) |
+| `nvidia-dra-sim` | GPU faults on DRA-allocated GPUs, claim holder and DRA plugin kills | [nvidia-dra-sim/](nvidia-dra-sim/README.md) |
+| `nvidia-nvsentinel` | GPU faults NVSentinel must detect, quarantine and drain for (Xid 79, DBE, 142 °C, lost GPU) | [nvidia-nvsentinel/](nvidia-nvsentinel/README.md) |
+| `nvidia-vllm` | vLLM pod kill / slowdown behind the InferencePool, EPP loss, Envoy load; Dynamo worker/frontend faults | [nvidia-vllm/](nvidia-vllm/README.md) |
+| `dc-ot-sim` | `ot-*`: utility outage, generator fail-to-start, UPS/PDU faults, CDU pump failure and leaks, CRAH/chiller trips, heatwave, IT surge, stuck/drifting sensors, comms loss | [dc-ot-sim/](dc-ot-sim/README.md) |
 | `runai-sim` | virtual GPU node failure, fake GPU utilization, cordon/kill on the virtual fleet | [runai-sim/](runai-sim/README.md) |
 | `network-kne` | router link down / flap / latency / loss, router crash, measured with ping probes and gNMI counters | [network-kne/](network-kne/README.md) |
 | `qa` | the generic faults once QA has workloads | [qa/](qa/README.md) |
