@@ -1,0 +1,16 @@
+name: generic-chiller
+description: Illustrative chiller map.
+regionUnits: true
+holding:
+  - {addr: 0, point: chilled_water_setpoint_c, type: int16, scale: 10, quantity: temperature, writable: true}
+input:
+  - {addr: 0, point: chilled_water_supply_c, type: int16, scale: 10, quantity: temperature}
+  - {addr: 1, point: chilled_water_return_c, type: int16, scale: 10, quantity: temperature}
+  - {addr: 2, point: cooling_load_kw, type: uint16, scale: 1}
+  - {addr: 3, point: power_kw, type: uint16, scale: 10}
+  - {addr: 4, point: cop, type: uint16, scale: 100}
+  - {addr: 5, point: ambient_c, type: int16, scale: 10, quantity: temperature}
+coils:
+  - {addr: 0, point: enable, writable: true}
+discrete:
+  - {addr: 0, point: running}

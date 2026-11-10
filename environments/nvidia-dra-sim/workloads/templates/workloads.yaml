@@ -1,0 +1,90 @@
+{{- define "r" -}}{{- if eq .root.Values.state "down" }}0{{ else }}{{ .n }}{{ end -}}{{- end }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: testenvs
+    testenv.onit.ai/name: {{ .Values.envName }}
+    testenv.onit.ai/state: {{ .Values.state }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+---
+# One GPU per claim, from the NVIDIA DRA driver's device class.
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata:
+  name: single-gpu
+  namespace: {{ .Values.namespace }}
+spec:
+  spec:
+    devices:
+      requests:
+        - name: gpu
+          exactly:
+            deviceClassName: gpu.nvidia.com
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-claimer
+  namespace: {{ .Values.namespace }}
+  labels: {app: gpu-claimer}
+spec:
+  replicas: {{ include "r" (dict "root" $ "n" .Values.claimers.replicas) }}
+  selector:
+    matchLabels: {app: gpu-claimer}
+  template:
+    metadata:
+      labels: {app: gpu-claimer}
+    spec:
+      resourceClaims:
+        - name: gpu
+          resourceClaimTemplateName: single-gpu
+      containers:
+        - name: main
+          image: {{ .Values.image }}
+          command: [bash, -c, "while true; do date -Is; nvidia-smi -L || echo 'no nvidia-smi'; sleep 30; done"]
+          resources:
+            claims:
+              - name: gpu
+{{- if .Values.shared.enabled }}
+---
+# A single claim referenced by two pods: they share the allocated GPU.
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: shared-gpu
+  namespace: {{ .Values.namespace }}
+spec:
+  devices:
+    requests:
+      - name: gpu
+        exactly:
+          deviceClassName: gpu.nvidia.com
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-sharer
+  namespace: {{ .Values.namespace }}
+  labels: {app: gpu-sharer}
+spec:
+  replicas: {{ include "r" (dict "root" $ "n" 2) }}
+  selector:
+    matchLabels: {app: gpu-sharer}
+  template:
+    metadata:
+      labels: {app: gpu-sharer}
+    spec:
+      resourceClaims:
+        - name: gpu
+          resourceClaimName: shared-gpu
+      containers:
+        - name: main
+          image: {{ .Values.image }}
+          command: [bash, -c, "while true; do date -Is; nvidia-smi -L || echo 'no nvidia-smi'; sleep 30; done"]
+          resources:
+            claims:
+              - name: gpu
+{{- end }}

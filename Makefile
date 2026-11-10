@@ -12,6 +12,8 @@
 #   AUTO_INSTALL  ask | yes | no               (installs via Homebrew; ask needs a terminal)
 #   CPUS MEMORY DISK                           VM size for Colima (default 6 CPU, 16 GiB, 100 GiB)
 #   STATE         up | down                    (make up STATE=down scales workloads to 0)
+#   HARDWARE      simulated | real             (default: env.yaml; real = onto real NVIDIA GPUs, needs ALLOW_REMOTE=1)
+#   FRONTEND      inference-gateway | dynamo   (nvidia-vllm only; default: its values.yaml)
 #   TYPE ARGS     simulation for `make sim`, e.g. TYPE=net-latency ARGS="--target-namespace x --pod-selector app=y"
 #   NAME          simulation name for sim-report / sim-metrics
 #   ONLY          regex: run only matching suite entries
@@ -19,8 +21,8 @@
 
 SHELL := /bin/bash
 T := scripts/local/testenv.sh
-export ENV CLUSTER CLUSTER_NAME AUTO_INSTALL CPUS MEMORY DISK STATE TYPE ARGS ONLY WAIT FORCE PURGE \
-       ALLOW_REMOTE DRY_RUN SKIP_PREFLIGHT WAIT_TIMEOUT SIMULATOR_IMAGE KNE_RUNNER_IMAGE SIM_WAIT SUITE_TIMEOUT
+export ENV CLUSTER CLUSTER_NAME AUTO_INSTALL CPUS MEMORY DISK STATE HARDWARE FRONTEND TYPE ARGS ONLY WAIT FORCE PURGE \
+       ALLOW_REMOTE DRY_RUN SKIP_PREFLIGHT WAIT_TIMEOUT SIMULATOR_IMAGE KNE_RUNNER_IMAGE OTSIM_IMAGE SIM_WAIT SUITE_TIMEOUT
 
 .DEFAULT_GOAL := help
 .PHONY: help envs tools cluster-install cluster-create cluster-delete check up down restart render status ui argocd \

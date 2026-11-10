@@ -1,0 +1,11 @@
+name: eu
+description: European Union (generic). 230/400 V 50 Hz (IEC 60038).
+voltageLN: 230
+voltageLL: 400
+frequencyHz: 50
+units: {temperature: C, flow: lpm, pressure: kpa}
+climate: {designAmbientC: 32, diurnalSwingC: 8}
+cooling: {evaporative: false, waterLPerKWhRejected: 0}
+gridCarbonGPerKWh: 250
+standards: [EN 50600 / ISO/IEC 22237, IEC 60364, IEC 62040 (UPS), EU Code of Conduct for Data Centre Energy Efficiency]
+reporting: ["Energy Efficiency Directive (EU) 2023/1791 Art. 12 + Delegated Regulation (EU) 2024/1364: sites >= 500 kW report energy, PUE, WUE, ERF, REF to the EU database yearly"]

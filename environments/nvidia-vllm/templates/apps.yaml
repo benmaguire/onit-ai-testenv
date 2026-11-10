@@ -1,0 +1,22 @@
+{{- $frontend := .Values.frontend | default "inference-gateway" }}
+{{- if not (has $frontend (list "inference-gateway" "dynamo")) }}{{ fail "frontend must be inference-gateway or dynamo" }}{{ end }}
+{{- range $key, $raw := .Values.components }}
+{{- $c := include "vllmenv.component" (dict "root" $ "c" $raw) | fromYaml }}
+{{- if and $c.enabled (has $frontend ($c.frontends | default (list $frontend))) }}
+{{- $rel := $c.releaseName | default (kebabcase $key) }}
+---
+{{- if $c.chart }}
+{{- $helm := dict "releaseName" $rel "valuesObject" ($c.values | default dict) }}
+{{- if $c.skipCrds }}{{ $_ := set $helm "skipCrds" true }}{{ end }}
+{{- $src := dict "repoURL" $c.repoURL "chart" $c.chart "targetRevision" $c.version "helm" $helm }}
+{{ include "vllmenv.app" (dict "root" $ "key" (kebabcase $key) "c" $c "source" $src "syncOptions" (list "SkipDryRunOnMissingResource=true")) }}
+{{- else if $c.kustomize }}
+{{- $src := dict "repoURL" $.Values.global.repoURL "path" $c.path "targetRevision" $.Values.global.targetRevision }}
+{{ include "vllmenv.app" (dict "root" $ "key" (kebabcase $key) "c" $c "source" $src "syncOptions" (list)) }}
+{{- else }}
+{{- $vals := merge (dict "state" $.Values.state "hardware" ($.Values.hardware | default "simulated") "envName" $.Values.global.envName) (deepCopy ($c.values | default dict)) }}
+{{- $src := dict "repoURL" $.Values.global.repoURL "path" $c.path "targetRevision" $.Values.global.targetRevision "helm" (dict "releaseName" $rel "valuesObject" $vals) }}
+{{ include "vllmenv.app" (dict "root" $ "key" (kebabcase $key) "c" $c "source" $src "syncOptions" (list "SkipDryRunOnMissingResource=true")) }}
+{{- end }}
+{{- end }}
+{{- end }}

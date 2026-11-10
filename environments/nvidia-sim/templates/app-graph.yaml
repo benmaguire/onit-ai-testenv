@@ -1,6 +1,6 @@
-{{- $c := .Values.components.graph -}}
+{{- $c := include "nvsim.component" (dict "root" $ "c" .Values.components.graph) | fromYaml -}}
 {{- if $c.enabled }}
-{{- $vals := merge (dict "state" .Values.state) (deepCopy $c.values) }}
+{{- $vals := merge (dict "state" .Values.state "hardware" (.Values.hardware | default "simulated")) (deepCopy ($c.values | default dict)) }}
 {{- $source := dict "repoURL" .Values.global.repoURL "path" $c.path "targetRevision" .Values.global.targetRevision "helm" (dict "releaseName" "mocker" "valuesObject" $vals) }}
 {{- /* DynamoGraphDeployment CRD only exists once the Dynamo operator has started. */}}
 {{ include "nvsim.app" (dict "root" $ "key" "graph" "c" $c "source" $source "syncOptions" (list "SkipDryRunOnMissingResource=true")) }}

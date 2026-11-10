@@ -1,4 +1,6 @@
 state: up
+# simulated | real (set by the ApplicationSet from env.yaml)
+hardware: simulated
 global:
   envName: nvidia-dynamo-disagg
 
@@ -34,6 +36,17 @@ decode:
     limits: {memory: 2Gi}
 
 speedupRatio: "1.0"
+
+# hardware: real -> vLLM workers on real NVIDIA GPUs (needs nvidia-sim with
+# hardware: real for the GPU Operator and Dynamo operator).
+real:
+  image: nvcr.io/nvidia/ai-dynamo/vllm-runtime:1.6.1
+  # Secret with HF_TOKEN for gated models (Qwen3-0.6B is ungated).
+  hfTokenSecret: ""
+  extraArgs: []
+  resources:
+    requests: {cpu: "2", memory: 8Gi}
+    limits: {memory: 24Gi}
 
 # Continuous traffic so dashboards and simulation baselines have data.
 loadgen:

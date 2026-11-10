@@ -1,0 +1,5 @@
+apiVersion: v2
+name: testenv-vllm-dynamo
+description: Dynamo frontend (OpenAI API + KV-aware router) in front of Dynamo vLLM workers
+type: application
+version: 0.1.0

@@ -1,0 +1,10 @@
+# Simulation suite for `make sim-suite ENV=nvidia-nvsentinel` (scripts/local/testenv.sh).
+# One simulation per line:  name | type | simctl inject arguments
+# Each GPU fault should make NVSentinel detect it (health monitors), cordon the
+# node and drain workload pods (nvidia-nvsentinel-workload namespace); compare
+# gpus_allocatable / ready_pods before, during and after. Recovery resets the
+# GPU; NVSentinel then uncordons once the node is healthy again.
+xid-79-fallen-off   | gpu-xid               | --gpu 0 --param xid=79 --param mode=fallen_off_bus --duration 3m --baseline 1m --after 3m --observe gpu --observe kubernetes
+xid-48-dbe          | gpu-ecc-uncorrectable | --gpu 0 --duration 3m --baseline 1m --after 3m --observe gpu --observe kubernetes
+gpu-overheat-142    | gpu-overheat          | --gpu 0 --param temperature=142 --duration 3m --baseline 1m --after 3m --observe gpu --observe kubernetes
+gpu-lost            | gpu-lost              | --gpu 0 --duration 3m --baseline 1m --after 3m --observe gpu --observe kubernetes

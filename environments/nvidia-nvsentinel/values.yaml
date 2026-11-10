@@ -1,0 +1,142 @@
+# NVSentinel (https://github.com/NVIDIA/nvsentinel): NVIDIA's open-source GPU
+# health monitoring and fault remediation. Values follow Mokka's NVSentinel
+# guide (docs/guides/nv-sentinel in NVIDIA/k8s-test-infra v0.6.0), adapted for
+# a single node: no control-plane pinning, DCGM from nvidia-sim's GPU Operator,
+# and draining limited to GPU workload namespaces so the node's own pipeline
+# (MongoDB, NVSentinel) is never evicted.
+state: up
+hardware: simulated
+global:
+  envName: nvidia-nvsentinel
+  project: testenvs
+  repoURL: https://github.com/benmaguire/onit-ai-testenv.git
+  targetRevision: main
+  argocdNamespace: argocd
+  destinationServer: https://kubernetes.default.svc
+components:
+  certManager:
+    enabled: true
+    syncWave: 0
+    namespace: cert-manager
+    repoURL: quay.io/jetstack/charts
+    chart: cert-manager
+    version: v1.19.1
+    values:
+      crds:
+        enabled: true
+  nvsentinel:
+    enabled: true
+    syncWave: 1
+    namespace: nvidia-nvsentinel
+    repoURL: ghcr.io/nvidia
+    chart: nvsentinel
+    version: v1.21.0
+    values:
+      global:
+        dryRun: false
+        systemNodeSelector: {}
+        systemNodeTolerations: []
+        dcgm:
+          mode: operator-service
+          enabled: true
+          service:
+            endpoint: nvidia-dcgm.nvidia-sim-gpu-operator.svc
+            port: 5555
+        datastore:
+          provider: mongodb
+          connection:
+            host: mongodb-rs0.nvidia-nvsentinel.svc.cluster.local
+            port: 27017
+            database: HealthEventsDatabase
+            collection: HealthEvents
+            tokenCollection: ResumeTokens
+            extraParams:
+              replicaSet: rs0
+              tls: 'true'
+          options:
+            maxConnections: '25'
+            maxIdleConnections: '10'
+            connectionMaxLifetime: 1h
+            pollInterval: 5s
+        gpuHealthMonitor:
+          enabled: true
+        syslogHealthMonitor:
+          enabled: false
+        cspHealthMonitor:
+          enabled: false
+        kubernetesObjectMonitor:
+          enabled: false
+        nicHealthMonitor:
+          enabled: false
+        mongodbStore:
+          enabled: true
+        faultQuarantine:
+          enabled: true
+        nodeDrainer:
+          enabled: true
+        faultRemediation:
+          enabled: false
+        janitor:
+          enabled: false
+        janitorProvider:
+          enabled: false
+        healthEventsAnalyzer:
+          enabled: false
+        labeler:
+          enabled: true
+        metadataCollector:
+          enabled: true
+        eventExporter:
+          enabled: false
+        preflight:
+          enabled: false
+      podMonitor:
+        enabled: false
+      networkPolicy:
+        enabled: false
+      labeler:
+        assumeDriverInstalled: true
+      gpu-health-monitor:
+        dcgmHealthCheck:
+          suppressedErrorCodes:
+          - DCGM_FR_NVLINK_EFFECTIVE_BER_THRESHOLD
+        dcgmFieldsMonitoring:
+          gpuTempLimitMonitoringEnabled: true
+          gpuTempLimitStoreOnly: false
+      node-drainer:
+        userNamespaces:
+        - name: nvidia-nvsentinel-workload
+          mode: Immediate
+        - name: nvidia-sim
+          mode: Immediate
+      fault-quarantine:
+        circuitBreaker:
+          enabled: false
+      mongodb-store:
+        useBitnami: false
+        usePerconaOperator: true
+        psmdb-db:
+          unsafeFlags:
+            replsetSize: true
+          replsets:
+            rs0:
+              size: 1
+              resources:
+                requests:
+                  cpu: 250m
+                  memory: 512Mi
+                limits:
+                  cpu: '1'
+                  memory: 2Gi
+              volumeSpec:
+                pvc:
+                  resources:
+                    requests:
+                      storage: 2Gi
+              sidecars: []
+  workload:
+    enabled: true
+    syncWave: 2
+    namespace: nvidia-nvsentinel-workload
+    path: environments/nvidia-nvsentinel/workload
+    values: {}

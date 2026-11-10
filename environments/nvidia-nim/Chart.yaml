@@ -1,0 +1,5 @@
+apiVersion: v2
+name: testenv-nvidia-nim
+description: App-of-apps for NVIDIA NIM on real GPUs (NIM Operator + a NIMService)
+type: application
+version: 0.1.0

@@ -1,0 +1,14 @@
+{{- range $key, $raw := .Values.components }}
+{{- $c := include "drasim.component" (dict "root" $ "c" $raw) | fromYaml }}
+{{- if $c.enabled }}
+---
+{{- if $c.chart }}
+{{- $src := dict "repoURL" $c.repoURL "chart" $c.chart "targetRevision" $c.version "helm" (dict "releaseName" (kebabcase $key) "valuesObject" ($c.values | default dict)) }}
+{{ include "drasim.app" (dict "root" $ "key" (kebabcase $key) "c" $c "source" $src "syncOptions" (list "SkipDryRunOnMissingResource=true")) }}
+{{- else }}
+{{- $vals := merge (dict "state" $.Values.state "hardware" ($.Values.hardware | default "simulated") "envName" $.Values.global.envName) (deepCopy ($c.values | default dict)) }}
+{{- $src := dict "repoURL" $.Values.global.repoURL "path" $c.path "targetRevision" $.Values.global.targetRevision "helm" (dict "releaseName" (kebabcase $key) "valuesObject" $vals) }}
+{{ include "drasim.app" (dict "root" $ "key" (kebabcase $key) "c" $c "source" $src "syncOptions" (list "SkipDryRunOnMissingResource=true")) }}
+{{- end }}
+{{- end }}
+{{- end }}

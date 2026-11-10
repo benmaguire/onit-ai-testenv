@@ -1,0 +1,58 @@
+name: otsim
+
+on:
+  push:
+    branches: [main]
+    tags: ["otsim-v*"]
+    paths: ["environments/dc-ot-sim/otsim/**", ".github/workflows/otsim.yaml"]
+  pull_request:
+    paths: ["environments/dc-ot-sim/otsim/**", ".github/workflows/otsim.yaml"]
+
+permissions:
+  contents: read
+  packages: write
+
+defaults:
+  run:
+    working-directory: environments/dc-ot-sim/otsim
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: environments/dc-ot-sim/otsim/go.mod
+          cache-dependency-path: environments/dc-ot-sim/otsim/go.sum
+      - run: go vet ./... && go test ./...
+      - run: for r in profiles/regions/*.yaml; do go run ./cmd/otsim validate --config examples/site.yaml --region "$(basename "$r" .yaml)"; done
+
+  image:
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/otsim
+          tags: |
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=match,pattern=otsim-v(.*),group=1
+      - uses: docker/build-push-action@v6
+        with:
+          context: environments/dc-ot-sim/otsim
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: VERSION=${{ github.ref_name }}

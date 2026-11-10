@@ -1,0 +1,5 @@
+apiVersion: v2
+name: testenv-nvidia-vllm
+description: App-of-apps for vLLM behind Envoy Gateway + Inference Extension, or behind a Dynamo frontend
+type: application
+version: 0.1.0

@@ -87,3 +87,55 @@ stringData:
   type: helm
   url: ghcr.io/prometheus-community/charts
   enableOCI: "true"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: repo-nvidia-ghcr-oci
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  name: nvidia-ghcr-oci
+  type: helm
+  url: ghcr.io/nvidia
+  enableOCI: "true"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: repo-jetstack-oci
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  name: jetstack-oci
+  type: helm
+  url: quay.io/jetstack/charts
+  enableOCI: "true"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: repo-envoyproxy-oci
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  name: envoyproxy-oci
+  type: helm
+  url: docker.io/envoyproxy
+  enableOCI: "true"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: repo-llm-d-oci
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  name: llm-d-oci
+  type: helm
+  url: ghcr.io/llm-d/charts
+  enableOCI: "true"

@@ -1,0 +1,17 @@
+# Set by the parent chart.
+state: up
+envName: nvidia-vllm
+
+gatewayClassName: testenv-inference-gateway
+gatewayName: inference-gateway
+poolName: vllm-pool
+requestTimeout: 300s
+
+# Envoy proxy Service: ClusterIP works everywhere (use kubectl port-forward);
+# LoadBalancer gets an address from k3s servicelb / cloud LBs.
+serviceType: ClusterIP
+proxy:
+  replicas: 1
+  resources:
+    requests: {cpu: 100m, memory: 128Mi}
+    limits: {memory: 512Mi}

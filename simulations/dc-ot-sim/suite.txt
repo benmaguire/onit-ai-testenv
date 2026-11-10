@@ -1,0 +1,21 @@
+# Simulation suite for `make sim-suite ENV=dc-ot-sim` (scripts/local/testenv.sh).
+# One simulation per line:  name | type | simctl inject arguments
+# ot-* faults go through otsim's admin API (http://otsim.dc-ot-sim.svc:8080);
+# the `ot` profile records PUE, IT/facility kW, inlet and CDU temperatures, UPS
+# charge, critical alarms and DCIM collector scrape errors before/during/after.
+# Device IDs are from environments/dc-ot-sim/values.yaml (siteConfig.devices).
+utility-outage      | ot-utility-outage          | --duration 2m --baseline 1m --after 3m --observe ot
+gen-fail-on-outage  | ot-generator-fail-to-start | --param device=gen-1 --duration 4m --baseline 30s --after 1m --observe ot
+ups-battery-aged    | ot-ups-battery-degraded    | --param device=ups-1 --param capacityPct=20 --duration 2m --baseline 30s --after 30s --observe ot
+breaker-trip-r3     | ot-pdu-breaker-trip        | --param device=pdu-r3 --duration 1m --baseline 30s --after 1m --observe ot
+cdu-pump-n1         | ot-cdu-pump-failure        | --param device=cdu-1 --param pump=1 --duration 2m --baseline 30s --after 1m --observe ot
+cdu-no-flow         | ot-cdu-pump-failure        | --param device=cdu-1 --param pump=0 --duration 2m --baseline 30s --after 5m --observe ot
+cdu-leak            | ot-cdu-leak                | --param device=cdu-1 --param litersPerMinute=20 --duration 2m --baseline 30s --after 5m --observe ot
+crah-1-down         | ot-crah-failure            | --param device=crah-1 --duration 3m --baseline 30s --after 3m --observe ot
+chiller-trip        | ot-chiller-trip            | --param device=chiller-1 --duration 3m --baseline 30s --after 5m --observe ot
+heatwave            | ot-high-ambient            | --param deltaC=12 --duration 3m --baseline 1m --after 2m --observe ot
+it-load-surge       | ot-it-load-surge           | --param multiplier=1.4 --duration 2m --baseline 1m --after 2m --observe ot
+cdu-sensor-stuck    | ot-sensor-stuck            | --param device=cdu-1 --param point=supply_temp_c --param value=18 --duration 1m --baseline 30s --after 30s --observe ot
+ups-snmp-lost       | ot-comms-loss              | --param device=ups-1 --param protocol=snmp --duration 1m --baseline 30s --after 30s --observe ot
+# The DCIM collector's own network path, with the generic faults:
+collector-latency   | net-latency                | --target-namespace dc-ot-sim --pod-selector app.kubernetes.io/name=dcim-collector --param delay=500ms --duration 1m --baseline 30s --after 30s --observe ot --observe kubernetes

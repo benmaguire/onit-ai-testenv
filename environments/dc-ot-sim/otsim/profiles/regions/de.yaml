@@ -1,0 +1,11 @@
+name: de
+description: Germany. 230/400 V 50 Hz. Energieeffizienzgesetz (EnEfG) sets PUE and heat-reuse targets.
+voltageLN: 230
+voltageLL: 400
+frequencyHz: 50
+units: {temperature: C, flow: lpm, pressure: kpa}
+climate: {designAmbientC: 32, diurnalSwingC: 9}
+cooling: {evaporative: false, waterLPerKWhRejected: 0}
+gridCarbonGPerKWh: 350
+standards: [DIN EN 50600, VDE 0100, IEC 62040, Blauer Engel for data centres]
+reporting: ["EnEfG: PUE <= 1.2 for data centres operating from July 2026 (existing: <= 1.5 by 2027, <= 1.3 by 2030), energy reuse factor targets, register entry, 100% renewable electricity from 2027"]

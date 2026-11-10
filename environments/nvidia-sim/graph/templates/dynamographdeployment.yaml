@@ -1,3 +1,4 @@
+{{- if not (has .Values.engine (list "mocker" "vllm")) }}{{ fail "engine must be mocker or vllm" }}{{ end }}
 {{- define "graph.replicas" -}}
 {{- if eq .root.Values.state "down" }}0{{ else }}{{ .n }}{{ end -}}
 {{- end }}
@@ -37,6 +38,19 @@ spec:
           {{- end }}
           containers:
             - name: main
+              {{- if eq .Values.engine "vllm" }}
+              # Real engine on a real GPU (hardware: real).
+              image: {{ .Values.vllm.image }}
+              imagePullPolicy: {{ .Values.imagePullPolicy }}
+              workingDir: /workspace
+              command: [python3, -m, dynamo.vllm]
+              args:
+                - --model
+                - {{ .Values.model | quote }}
+                {{- range .Values.vllm.extraArgs }}
+                - {{ . | quote }}
+                {{- end }}
+              {{- else }}
               image: {{ .Values.image }}
               imagePullPolicy: {{ .Values.imagePullPolicy }}
               workingDir: /workspace
@@ -51,12 +65,15 @@ spec:
                 {{- range .Values.decode.extraArgs }}
                 - {{ . | quote }}
                 {{- end }}
+              {{- end }}
               {{- with .Values.hfTokenSecret }}
               envFrom:
                 - secretRef:
                     name: {{ . }}
               {{- end }}
               {{- $res := deepCopy .Values.decode.resources }}
+              {{- if eq .Values.engine "vllm" }}{{ $res = deepCopy .Values.vllm.resources }}{{ end }}
+              {{- if and (eq .Values.engine "vllm") (lt (int .Values.decode.gpus) 1) }}{{ fail "engine vllm needs decode.gpus >= 1" }}{{ end }}
               {{- if gt (int .Values.decode.gpus) 0 }}
               {{- $limits := merge (dict "nvidia.com/gpu" (toString .Values.decode.gpus)) ($res.limits | default dict) }}
               {{- $_ := set $res "limits" $limits }}

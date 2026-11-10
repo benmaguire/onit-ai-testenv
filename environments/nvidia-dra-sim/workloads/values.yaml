@@ -1,0 +1,11 @@
+state: up
+hardware: simulated
+envName: nvidia-dra-sim
+namespace: nvidia-dra-sim
+image: nicolaka/netshoot:v0.16
+# Pods each claiming one whole GPU through a ResourceClaimTemplate.
+claimers:
+  replicas: 2
+# One ResourceClaim shared by two pods: both see the same GPU (DRA sharing).
+shared:
+  enabled: true

@@ -1,0 +1,91 @@
+{{- $l := dict "app.kubernetes.io/part-of" "testenvs" "testenv.onit.ai/name" .Values.envName }}
+# Envoy Gateway must read InferencePools to resolve them as route backends.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.envName }}-envoy-gateway-inference-access
+  labels: {{- toYaml $l | nindent 4 }}
+rules:
+  - apiGroups: [inference.networking.k8s.io]
+    resources: [inferencepools]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.envName }}-envoy-gateway-inference-access
+  labels: {{- toYaml $l | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: envoy-gateway
+    namespace: envoy-gateway-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.envName }}-envoy-gateway-inference-access
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: {{ .Values.gatewayName }}
+  labels: {{- toYaml $l | nindent 4 }}
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        # Fixed name: http://{{ .Values.gatewayName }}.<namespace>.svc for probes and port-forwards.
+        name: {{ .Values.gatewayName }}
+        type: {{ .Values.serviceType }}
+      envoyDeployment:
+        replicas: {{ ternary 0 (int .Values.proxy.replicas) (eq .Values.state "down") }}
+        container:
+          resources:
+            {{- toYaml .Values.proxy.resources | nindent 12 }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: {{ .Values.gatewayClassName }}
+  labels: {{- toYaml $l | nindent 4 }}
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ .Values.gatewayName }}
+  labels: {{- toYaml $l | nindent 4 }}
+spec:
+  gatewayClassName: {{ .Values.gatewayClassName }}
+  infrastructure:
+    parametersRef:
+      group: gateway.envoyproxy.io
+      kind: EnvoyProxy
+      name: {{ .Values.gatewayName }}
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+---
+# Every OpenAI-style request goes to the InferencePool; Envoy asks the
+# Endpoint Picker (ext_proc) which vLLM pod should serve it.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .Values.poolName }}
+  labels: {{- toYaml $l | nindent 4 }}
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ .Values.gatewayName }}
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /}
+      backendRefs:
+        - group: inference.networking.k8s.io
+          kind: InferencePool
+          name: {{ .Values.poolName }}
+      timeouts:
+        request: {{ .Values.requestTimeout }}

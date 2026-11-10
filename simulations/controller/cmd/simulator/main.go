@@ -61,6 +61,7 @@ func main() {
 		promURL         = flag.String("prometheus-url", envOr("SIM_PROMETHEUS_URL", ""), "Prometheus for simulation metrics (e.g. http://kube-prometheus-stack-prometheus.observability:9090)")
 		profilesFile    = flag.String("metrics-profiles-file", "", "YAML file with extra/overriding metrics profiles")
 		toolsImage      = flag.String("tools-image", inject.DefaultToolsImage, "image for fault-injection ephemeral containers (needs tc, iptables, ip, bash, python3)")
+		otsimURL        = flag.String("otsim-url", envOr("SIM_OTSIM_URL", ""), "otsim admin API for ot-* simulations (default http://otsim.<namespace>.svc:8080)")
 		hubInsecure     = flag.Bool("hub-insecure-skip-tls-verify", false, "agent: skip TLS verification of the hub, and ask the hub to skip it for this agent")
 	)
 	opts := zap.Options{Development: false}
@@ -75,7 +76,7 @@ func main() {
 		probeAddr: *probeAddr, metricsAddr: *metricsAddr, leaderElect: *leaderElect, namespace: *namespace,
 		mokkaNS: *mokkaNS, mokkaSel: *mokkaSel, graph: *graph, graphNS: *graphNS,
 		hubURL: *hubURL, hubTokenFile: *hubTokenFile, advertiseURL: *advertiseURL,
-		advertiseCAFile: *advertiseCAFile, hubInsecure: *hubInsecure, toolsImage: *toolsImage, promURL: *promURL, profilesFile: *profilesFile,
+		advertiseCAFile: *advertiseCAFile, hubInsecure: *hubInsecure, toolsImage: *toolsImage, otsimURL: *otsimURL, promURL: *promURL, profilesFile: *profilesFile,
 	}); err != nil {
 		log.Error(err, "exiting")
 		os.Exit(1)
@@ -89,7 +90,7 @@ type runOpts struct {
 	namespace, mokkaNS, mokkaSel, graph, graphNS                                      string
 	hubURL, hubTokenFile, advertiseURL, advertiseCAFile                               string
 	hubInsecure                                                                       bool
-	toolsImage                                                                        string
+	toolsImage, otsimURL                                                              string
 	promURL, profilesFile                                                             string
 }
 
@@ -139,7 +140,7 @@ func run(log interface {
 		Client: mgr.GetClient(), Exec: execr, Log: ctrl.Log.WithName("inject"),
 		MokkaNamespace: o.mokkaNS, MokkaSelector: mokkaSelector,
 		DefaultGraph: o.graph, DefaultGraphNamespace: o.graphNS, Now: time.Now,
-		Ephemeral: &kube.PodEphemeralRunner{Clientset: execr.Clientset}, ToolsImage: o.toolsImage,
+		Ephemeral: &kube.PodEphemeralRunner{Clientset: execr.Clientset}, ToolsImage: o.toolsImage, OTSimURL: o.otsimURL,
 	}
 	profiles, err := observe.LoadProfiles(o.profilesFile)
 	if err != nil {

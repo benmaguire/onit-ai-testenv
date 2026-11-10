@@ -1,0 +1,30 @@
+state: up
+# simulated | real (set by the ApplicationSet from env.yaml). Only real is supported.
+hardware: real
+global:
+  envName: nvidia-nim
+  project: testenvs
+  repoURL: https://github.com/benmaguire/onit-ai-testenv.git
+  targetRevision: main
+  argocdNamespace: argocd
+  destinationServer: https://kubernetes.default.svc
+
+components:
+  # NVIDIA NIM Operator: manages NIMCache (model download to a PVC) and
+  # NIMService (the inference Deployment + Service).
+  nimOperator:
+    enabled: true
+    syncWave: 0
+    namespace: nvidia-nim-operator
+    repoURL: https://helm.ngc.nvidia.com/nvidia
+    chart: k8s-nim-operator
+    version: 3.1.4
+    values: {}
+
+  # NIMCache + NIMService (chart in ./nim).
+  nim:
+    enabled: true
+    syncWave: 1
+    namespace: nvidia-nim
+    path: environments/nvidia-nim/nim
+    values: {}

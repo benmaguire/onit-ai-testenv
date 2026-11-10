@@ -17,6 +17,10 @@ targets:
     enabled: true
   gnmic:              # gNMI telemetry from KNE routers (network-kne)
     enabled: true
+  vllm:               # vLLM / llm-d vLLM simulator model servers (:8000/metrics, nvidia-vllm)
+    enabled: true
+  otsim:              # data centre OT simulator + DCIM collector (dc-ot-sim)
+    enabled: true
 
 dashboards:
   enabled: true

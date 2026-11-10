@@ -100,6 +100,54 @@ spec:
       path: /metrics
       interval: 15s
 {{- end }}
+{{- if .vllm.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: vllm
+  labels: {{- toYaml $l | nindent 4 }}
+spec:
+  namespaceSelector: {any: true}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vllm
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 10s
+{{- end }}
+{{- if .otsim.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: otsim
+  labels: {{- toYaml $l | nindent 4 }}
+spec:
+  namespaceSelector: {any: true}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: otsim
+  endpoints:
+    - port: admin
+      path: /metrics
+      interval: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: dcim-collector
+  labels: {{- toYaml $l | nindent 4 }}
+spec:
+  namespaceSelector: {any: true}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dcim-collector
+  endpoints:
+    - port: metrics
+      interval: 10s
+{{- end }}
 {{- if .gnmic.enabled }}
 ---
 apiVersion: monitoring.coreos.com/v1

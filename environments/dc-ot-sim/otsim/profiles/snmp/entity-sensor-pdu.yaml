@@ -1,0 +1,16 @@
+name: entity-sensor-pdu
+description: >-
+  Rack PDU sensors through the standard ENTITY-MIB (RFC 6933 entPhysicalTable)
+  and ENTITY-SENSOR-MIB (RFC 3433 entPhySensorTable). Vendor PDU MIBs carry
+  more detail; many collectors read these standard tables first.
+sensors:
+  - {name: "Input power", point: power_w, type: 6, precision: 0, unitsDisplay: W}            # watts
+  - {name: "Input voltage", point: voltage_v, type: 3, precision: 1, unitsDisplay: V}         # voltsAC
+  - {name: "Input frequency", point: frequency_hz, type: 7, precision: 2, unitsDisplay: Hz}   # hertz
+  - {name: "Phase L1 current", point: current_l1_a, type: 5, precision: 2, unitsDisplay: A}   # amperes
+  - {name: "Phase L2 current", point: current_l2_a, type: 5, precision: 2, unitsDisplay: A}
+  - {name: "Phase L3 current", point: current_l3_a, type: 5, precision: 2, unitsDisplay: A}
+  - {name: "Inlet temperature", point: inlet_temp_c, type: 8, precision: 1, unitsDisplay: C}  # celsius
+  - {name: "Outlet temperature", point: outlet_temp_c, type: 8, precision: 1, unitsDisplay: C}
+  - {name: "Relative humidity", point: humidity_pct, type: 9, precision: 1, unitsDisplay: "%RH"}  # percentRH
+  - {name: "Breaker closed", point: breaker_closed, type: 12, precision: 0, unitsDisplay: ""}     # truthvalue (1 true, 2 false)

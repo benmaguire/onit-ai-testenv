@@ -3,6 +3,30 @@
 A record of what has actually been run, against what, and what hasn't been
 run yet. Update it when you validate something new.
 
+## 2026-11-10: new environments and hardware modes (offline validation, no cluster)
+
+This round added nvidia-dra-sim, nvidia-nvsentinel, nvidia-nim, nvidia-vllm and
+dc-ot-sim, `hardware: real`, and the `ot-*` simulations. Everything was checked
+without deploying to a cluster:
+
+| Check | Result |
+|---|---|
+| `helm lint`, all 24 charts, `hardware=simulated` and `real` | pass. This caught a `crds/` folder in nvidia-vllm that Helm would have applied as raw CRDs (renamed `inference-crds/`) |
+| Local render of every environment in each mode it supports (`make render`, 19 combinations), including nvidia-vllm with both `FRONTEND`s; pulls and templates the upstream charts (Envoy Gateway v1.10.0, Agent Router 1.2.1, llm-d-router-gateway v1.0.0, GPU Operator, DRA drivers, NVSentinel, NIM Operator) | pass |
+| Gateway manifests vs the Envoy Gateway v1.10.0 / Gateway API CRD schemas (`infrastructure.parametersRef`, EnvoyProxy service name, HTTPRoute timeouts) | pass |
+| llm-d vLLM simulator v1.1.0 in Docker: OpenAI API, `vllm:*` metrics the EPP scores on | pass. Found that latency flags need units (`200ms`) |
+| otsim `go test` (plant physics, real Modbus/SNMP/Redfish clients, admin API, map validation) | pass |
+| Generated DCIM collector config loaded by Telegraf 1.40.3 (`telegraf --test`) | pass after a fix: integer `scale = 1` was rejected as a TOML integer (now always a float) |
+| Simulation controller `go test` incl. `ot-*` injectors against a fake otsim API; generated CRDs/catalog stable | pass |
+| ShellCheck (no new warning types), markdown links | pass |
+
+**Not exercised:**
+- No live deploy of any of the new environments.
+- No real-GPU run (`hardware: real`).
+- The EPP's routing decisions and the Agent Router ↔ Envoy Gateway extension
+  wiring are only validated by schema and render, not live.
+- The Telegraf config was loaded but not run against a live otsim.
+
 ## 2026-11-09: local run on a Mac (k3d)
 
 **Setup:** macOS 26.4 on Apple Silicon (arm64), Docker Desktop 28.0.1 (14 CPU,

@@ -1,0 +1,5 @@
+apiVersion: v2
+name: testenv-vllm-model-servers
+description: vLLM model servers (llm-d vLLM simulator, or vLLM on real GPUs) selected by the InferencePool
+type: application
+version: 0.1.0

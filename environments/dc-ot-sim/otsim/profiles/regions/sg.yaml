@@ -1,0 +1,11 @@
+name: sg
+description: Singapore. 230/400 V 50 Hz, tropical (hot and humid all year).
+voltageLN: 230
+voltageLL: 400
+frequencyHz: 50
+units: {temperature: C, flow: lpm, pressure: kpa}
+climate: {designAmbientC: 34, diurnalSwingC: 5}
+cooling: {evaporative: true, waterLPerKWhRejected: 1.5}
+gridCarbonGPerKWh: 410
+standards: ["SS 564 (Green Data Centres)", "SS 697 (tropical data centre operating temperature)", BCA-IMDA Green Mark for Data Centres]
+reporting: [Green Mark certification (PUE-based), IMDA data centre call-for-application criteria]

@@ -1,4 +1,6 @@
 state: up
+# simulated | real (set by the ApplicationSet from env.yaml)
+hardware: simulated
 global:
   envName: nvidia-triton-cpu
 
@@ -25,6 +27,12 @@ triton:
   pdb:
     enabled: true
     minAvailable: 1
+
+# hardware: real -> each Triton pod gets a real GPU and Triton's GPU metrics
+# (needs a GPU stack, e.g. nvidia-sim with hardware: real). The models stay
+# CPU Python models; add GPU models (ONNX/TensorRT) to models/ to use the GPU.
+real:
+  gpus: 1
 
 # simulated_llm: latency = baseLatencyMs + perTokenMs * max_tokens, batched.
 models:

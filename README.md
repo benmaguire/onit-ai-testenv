@@ -13,6 +13,11 @@ documentation, specs, and a small `env.yaml` of lifecycle switches.
 | `nvidia-triton-cpu` | **NVIDIA Triton Inference Server** on CPU: LLM-shaped and example Python models, dynamic batching, HPA, PDB, load. Starts disabled | [environments/nvidia-triton-cpu](environments/nvidia-triton-cpu/README.md) |
 | `network-kne` | **KNE network emulation**: 2 Cisco XRd routers (OSPF + iBGP) and 2 hosts, gNMI telemetry. Needs the XRd image. Starts disabled | [environments/network-kne](environments/network-kne/README.md) |
 | `observability` | **Prometheus + Grafana** for all environments, and the metrics backend for simulation baselines. Starts disabled | [environments/observability](environments/observability/README.md) |
+| `nvidia-dra-sim` | GPUs allocated with **Kubernetes DRA** (ResourceClaims, NVIDIA DRA driver) on Mokka or real GPUs; whole and shared GPUs. Kubernetes ≥ 1.34, not with nvidia-sim. Starts disabled | [environments/nvidia-dra-sim](environments/nvidia-dra-sim/README.md) |
+| `nvidia-nvsentinel` | **NVSentinel** GPU health monitoring and remediation (detect → quarantine → drain) on nvidia-sim's mock GPUs. Starts disabled | [environments/nvidia-nvsentinel](environments/nvidia-nvsentinel/README.md) |
+| `nvidia-vllm` | **vLLM** behind **Envoy Gateway + Gateway API Inference Extension** (InferencePool, llm-d Endpoint Picker), or fronted by a **Dynamo** KV-aware frontend. Simulator by default (no GPU). Starts disabled | [environments/nvidia-vllm](environments/nvidia-vllm/README.md) |
+| `nvidia-nim` | **NVIDIA NIM** via the NIM Operator (NIMCache + NIMService). Real GPUs and an NGC key only. Starts disabled | [environments/nvidia-nim](environments/nvidia-nim/README.md) |
+| `dc-ot-sim` | **Data centre OT simulator**: power (utility, generator, ATS, UPS, PDUs), cooling (CDU, CRAH, chiller), water and leak detection over **Modbus TCP, SNMP and Redfish**, with country profiles and a DCIM collector. Starts disabled | [environments/dc-ot-sim](environments/dc-ot-sim/README.md) |
 | `runai-sim` | Run:ai-style GPU scheduling on non-GPU hardware: KAI Scheduler (open-source Run:ai scheduler) + Run:ai fake-gpu-operator on KWOK virtual GPU nodes (40 simulated GPUs). Starts disabled | [environments/runai-sim](environments/runai-sim/README.md) |
 
 Target cluster: a **single-node k3s** cluster with Argo CD installed.

@@ -1,0 +1,10 @@
+# Inference Extension CRDs.
+# - InferencePool (inference.networking.k8s.io/v1): the Kubernetes SIG release.
+# - InferenceObjective / InferenceModelRewrite (llm-d.ai): the llm-d-router
+#   release, whose Endpoint Picker is used here.
+# Versions follow the Agent Router v1.2.x compatibility matrix.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - https://github.com/kubernetes-sigs/gateway-api-inference-extension/releases/download/v1.6.2/manifests.yaml
+  - https://github.com/llm-d/llm-d-router/releases/download/v1.0.0/manifests.yaml

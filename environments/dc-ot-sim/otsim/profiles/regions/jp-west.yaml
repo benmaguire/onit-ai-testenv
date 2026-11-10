@@ -1,0 +1,11 @@
+name: jp-west
+description: Japan, western grid (Osaka, 60 Hz). Low-voltage distribution 100/200 V; 400 V class (415/240 V) is common in large data centres.
+voltageLN: 115
+voltageLL: 200
+frequencyHz: 60
+units: {temperature: C, flow: lpm, pressure: kpa}
+climate: {designAmbientC: 35, diurnalSwingC: 7}
+cooling: {evaporative: true, waterLPerKWhRejected: 1.5}
+gridCarbonGPerKWh: 450
+standards: [JIS C 60364, Electricity Business Act, JDCC data centre facility standard]
+reporting: [Energy Conservation Act (data centre PUE benchmark reporting for large operators)]

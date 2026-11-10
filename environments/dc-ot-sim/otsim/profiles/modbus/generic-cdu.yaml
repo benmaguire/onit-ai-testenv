@@ -1,0 +1,25 @@
+name: generic-cdu
+description: >-
+  Illustrative coolant distribution unit (CDU) map. Temperatures, flow and
+  pressure follow the region's display units when regionUnits is true (BMS
+  integrations in the US often expect °F, GPM and psi). Setpoints are writable.
+regionUnits: true
+holding:
+  - {addr: 0, point: supply_setpoint_c, type: int16, scale: 10, quantity: temperature, writable: true}
+  - {addr: 1, point: pump_speed_pct, type: uint16, scale: 10, writable: true}
+input:
+  - {addr: 0, point: supply_temp_c, type: int16, scale: 10, quantity: temperature}
+  - {addr: 1, point: return_temp_c, type: int16, scale: 10, quantity: temperature}
+  - {addr: 2, point: flow_lpm, type: uint16, scale: 10, quantity: flow}
+  - {addr: 3, point: delta_pressure_kpa, type: uint16, scale: 10, quantity: pressure}
+  - {addr: 4, point: heat_load_kw, type: uint16, scale: 10}
+  - {addr: 5, point: pump_power_kw, type: uint16, scale: 100}
+  - {addr: 6, point: reservoir_level_pct, type: uint16, scale: 10}
+  - {addr: 7, point: pumps_running, type: uint16}
+coils:
+  - {addr: 0, point: pump1_enable, writable: true}
+  - {addr: 1, point: pump2_enable, writable: true}
+discrete:
+  - {addr: 0, point: leak_detected}
+  - {addr: 1, point: pump1_running}
+  - {addr: 2, point: pump2_running}

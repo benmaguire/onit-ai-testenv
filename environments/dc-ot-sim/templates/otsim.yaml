@@ -1,0 +1,122 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespace }}
+  labels:
+    {{- include "ot.labels" . | nindent 4 }}
+    testenv.onit.ai/state: {{ .Values.state }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otsim-site
+  namespace: {{ .Values.namespace }}
+data:
+  site.yaml: |
+    {{- include "ot.site" . | nindent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otsim-profiles
+  namespace: {{ .Values.namespace }}
+data:
+  {{- range $path, $content := .Values.extraProfiles }}
+  {{ $path | replace "/" "__" }}: |
+    {{- $content | nindent 4 }}
+  {{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otsim
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: otsim
+spec:
+  replicas: {{ include "ot.replicas" . }}
+  selector:
+    matchLabels: {app.kubernetes.io/name: otsim}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: otsim}
+      annotations:
+        checksum/site: {{ include "ot.site" . | sha256sum }}
+        checksum/profiles: {{ .Values.extraProfiles | toJson | sha256sum }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: otsim
+          image: {{ .Values.image }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          args: [serve, --config, /etc/otsim/site.yaml, --profiles-dir, /profiles,
+                 --modbus-gateway, "tcp://0.0.0.0:1502", --snmp-addr, ":1161",
+                 --community, {{ .Values.snmpCommunity | quote }}]
+          ports:
+            - {name: admin, containerPort: 8080}
+            - {name: redfish, containerPort: 8443}
+            - {name: modbus, containerPort: 1502}
+            - {name: snmp, containerPort: 1161, protocol: UDP}
+          readinessProbe:
+            httpGet: {path: /healthz, port: admin}
+          livenessProbe:
+            httpGet: {path: /healthz, port: admin}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: site, mountPath: /etc/otsim}
+            - {name: profiles, mountPath: /profiles}
+      volumes:
+        - name: site
+          configMap: {name: otsim-site}
+        - name: profiles
+          configMap: {name: otsim-profiles}
+---
+# Shared endpoints: admin API + metrics, Redfish service, Modbus gateway
+# (unit ID = device index + 1), SNMP (community = device id).
+apiVersion: v1
+kind: Service
+metadata:
+  name: otsim
+  namespace: {{ .Values.namespace }}
+  labels: {app.kubernetes.io/name: otsim}
+spec:
+  selector: {app.kubernetes.io/name: otsim}
+  ports:
+    - {name: admin, port: 8080, targetPort: admin}
+    - {name: redfish, port: 8443, targetPort: redfish}
+    - {name: modbus, port: 502, targetPort: modbus}
+    - {name: snmp, port: 161, targetPort: snmp, protocol: UDP}
+{{- /* One Service per device on the standard ports, like real devices on their own IPs. */}}
+{{- range $i, $d := .Values.siteConfig.devices }}
+{{- if or (hasKey ($d.protocols | default dict) "modbus") (hasKey ($d.protocols | default dict) "snmp") }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otsim-{{ $d.id }}
+  namespace: {{ $.Values.namespace }}
+  labels:
+    app.kubernetes.io/name: otsim-device
+    otsim.testenv.onit.ai/device: {{ $d.id }}
+    otsim.testenv.onit.ai/type: {{ $d.type }}
+spec:
+  selector: {app.kubernetes.io/name: otsim}
+  ports:
+    {{- if hasKey $d.protocols "modbus" }}
+    - {name: modbus, port: 502, targetPort: {{ add 15000 $i }}}
+    {{- end }}
+    {{- if hasKey $d.protocols "snmp" }}
+    - {name: snmp, port: 161, targetPort: {{ add 16000 $i }}, protocol: UDP}
+    {{- end }}
+{{- end }}
+{{- end }}

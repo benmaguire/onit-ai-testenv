@@ -1,0 +1,44 @@
+name: sunspec-203
+description: >-
+  SunSpec Modbus: "SunS" marker at 40000, Common model (1) and three-phase wye
+  meter model (203), end model 0xFFFF. SunSpec is the open standard Modbus map
+  for meters, inverters and storage. Scale factors (_SF) are int16 powers of ten
+  (value = raw x 10^SF). Verify offsets against the SunSpec model definitions
+  before using this against a strict client.
+holding:
+  - {addr: 40000, const: 21365, type: uint16}   # "Su"
+  - {addr: 40001, const: 28243, type: uint16}   # "nS"
+  - {addr: 40002, const: 1, type: uint16}       # Common model ID
+  - {addr: 40003, const: 66, type: uint16}      # length
+  - {addr: 40004, field: vendor, type: string, len: 16}   # Mn
+  - {addr: 40020, field: model, type: string, len: 16}    # Md
+  - {addr: 40036, string: "otsim", type: string, len: 8}  # Opt
+  - {addr: 40044, string: "1.0", type: string, len: 8}    # Vr
+  - {addr: 40052, field: serial, type: string, len: 16}   # SN
+  - {addr: 40068, const: 1, type: uint16}                 # DA (device address)
+  - {addr: 40070, const: 203, type: uint16}     # Meter model ID (three-phase wye)
+  - {addr: 40071, const: 105, type: uint16}     # length
+  - {addr: 40072, point: current_a, type: int16, scale: 10}        # A
+  - {addr: 40073, point: current_l1_a, type: int16, scale: 10}     # AphA
+  - {addr: 40074, point: current_l2_a, type: int16, scale: 10}     # AphB
+  - {addr: 40075, point: current_l3_a, type: int16, scale: 10}     # AphC
+  - {addr: 40076, const: -1, type: int16}                          # A_SF
+  - {addr: 40077, point: voltage_ln_v, type: int16, scale: 10}     # PhV
+  - {addr: 40078, point: voltage_l1_v, type: int16, scale: 10}
+  - {addr: 40079, point: voltage_l2_v, type: int16, scale: 10}
+  - {addr: 40080, point: voltage_l3_v, type: int16, scale: 10}
+  - {addr: 40081, point: voltage_ll_v, type: int16, scale: 10}     # PPV
+  - {addr: 40085, const: -1, type: int16}                          # V_SF
+  - {addr: 40086, point: frequency_hz, type: int16, scale: 100}    # Hz
+  - {addr: 40087, const: -2, type: int16}                          # Hz_SF
+  - {addr: 40088, point: power_w, type: int16, scale: 0.01}        # W
+  - {addr: 40089, point: power_l1_w, type: int16, scale: 0.01}
+  - {addr: 40090, point: power_l2_w, type: int16, scale: 0.01}
+  - {addr: 40091, point: power_l3_w, type: int16, scale: 0.01}
+  - {addr: 40092, const: 2, type: int16}                           # W_SF
+  - {addr: 40103, point: power_factor, type: int16, scale: 100}    # PF (x0.01 ... as cos phi x100)
+  - {addr: 40107, const: -2, type: int16}                          # PF_SF
+  - {addr: 40116, point: energy_wh, type: uint32}                  # TotWhImp (acc32)
+  - {addr: 40124, const: 0, type: int16}                           # TotWh_SF
+  - {addr: 40177, const: 65535, type: uint16}   # end model ID
+  - {addr: 40178, const: 0, type: uint16}       # end model length

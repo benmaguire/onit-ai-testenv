@@ -1,0 +1,11 @@
+name: nordics
+description: Nordics (e.g. Sweden, Norway, Finland). 230/400 V 50 Hz, cool climate with long free-cooling hours.
+voltageLN: 230
+voltageLL: 400
+frequencyHz: 50
+units: {temperature: C, flow: lpm, pressure: kpa}
+climate: {designAmbientC: 25, diurnalSwingC: 7}
+cooling: {evaporative: false, waterLPerKWhRejected: 0}
+gridCarbonGPerKWh: 40
+standards: [EN 50600, IEC 60364]
+reporting: [EU Energy Efficiency Directive data centre reporting (EU members), district heat reuse programmes]

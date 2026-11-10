@@ -1,0 +1,5 @@
+apiVersion: v2
+name: nvidia-nim-service
+description: NIMCache and NIMService for one NIM model
+type: application
+version: 0.1.0

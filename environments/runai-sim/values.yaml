@@ -1,5 +1,7 @@
 # Set by the ApplicationSet from env.yaml; defaults let `helm template` work locally.
 state: up            # up | down
+# simulated | real (set by the ApplicationSet from env.yaml)
+hardware: simulated
 global:
   envName: runai-sim
   project: testenvs

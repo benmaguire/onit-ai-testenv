@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: testenvs
+    testenv.onit.ai/name: {{ .Values.envName }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+---
+# Downloads the model from NGC into a PVC once; NIMService pods mount it.
+apiVersion: apps.nvidia.com/v1alpha1
+kind: NIMCache
+metadata:
+  name: {{ .Values.model.name }}
+  namespace: {{ .Values.namespace }}
+spec:
+  source:
+    ngc:
+      modelPuller: {{ printf "%s:%s" .Values.model.image .Values.model.tag }}
+      pullSecret: {{ .Values.pullSecret }}
+      authSecret: {{ .Values.authSecret }}
+  storage:
+    pvc:
+      create: true
+      storageClass: {{ .Values.cache.storageClass | quote }}
+      size: {{ .Values.cache.size | quote }}
+      volumeAccessMode: ReadWriteOnce
+---
+apiVersion: apps.nvidia.com/v1alpha1
+kind: NIMService
+metadata:
+  name: {{ .Values.model.name }}
+  namespace: {{ .Values.namespace }}
+spec:
+  image:
+    repository: {{ .Values.model.image }}
+    tag: {{ .Values.model.tag | quote }}
+    pullPolicy: IfNotPresent
+    pullSecrets:
+      - {{ .Values.pullSecret }}
+  authSecret: {{ .Values.authSecret }}
+  replicas: {{ if eq .Values.state "down" }}0{{ else }}1{{ end }}
+  storage:
+    nimCache:
+      name: {{ .Values.model.name }}
+      profile: {{ .Values.model.profile | quote }}
+  resources:
+    limits:
+      nvidia.com/gpu: {{ .Values.model.gpus }}
+  expose:
+    service:
+      type: {{ .Values.service.type }}
+      port: {{ .Values.service.port }}

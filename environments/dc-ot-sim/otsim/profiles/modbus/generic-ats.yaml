@@ -1,0 +1,7 @@
+name: generic-ats
+description: Illustrative automatic transfer switch map.
+input:
+  - {addr: 0, point: source, type: uint16}               # 0 none, 1 utility, 2 generator
+discrete:
+  - {addr: 0, point: utility_available}
+  - {addr: 1, point: generator_available}

@@ -1,0 +1,5 @@
+apiVersion: v2
+name: nvidia-nvsentinel-workload
+description: A GPU workload for NVSentinel to drain when its GPU goes unhealthy
+type: application
+version: 0.1.0
